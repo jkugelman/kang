@@ -144,8 +144,8 @@ public class Grammar {
 
         /**
          * If <code>true</code>, the variable is collapsed after being parsed,
-         * which means the replacement items are inserted where the variable's
-         * {@link ParseTree.Variable} normally would be.
+         * which means the replacement items are inserted in the parse tree
+         * where the variable normally would be.
          * 
          * @return a boolean indicating if the variable is collapsible
          */
