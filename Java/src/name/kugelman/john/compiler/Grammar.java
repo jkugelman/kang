@@ -13,7 +13,7 @@ public class Grammar {
     /**
      * Base class for the {@link Terminal} and {@link Variable} classes.
      */
-    public class Item {
+    public abstract class Item {
     }
 
     /**
@@ -172,22 +172,25 @@ public class Grammar {
     }
     
     /**
+     * The associativity of a {@link Rule}, which allows the parser to resolve
+     * certain ambiguities in a grammar.
+     * <p>
+     * Java does not allow enums to be defined inside of a non-static inner
+     * class, so this enum is here instead of within <code>Rule</code>. 
+     */
+    public enum Associativity {
+        /** Non-associative rule. */
+        NONE,
+        /** Left-associative rule. */
+        LEFT,
+        /** Right-associative rule. */
+        RIGHT
+    }
+
+    /**
      * A single production "variable → variables and terminals".
      */
     public class Rule {
-        /**
-         * The associativity of a rule, which allows the parser to resolve
-         * certain ambiguities in a grammar.
-         */
-        public enum Associativity {
-            /** Non-associative rule. */
-            NONE,
-            /** Left-associative rule. */
-            LEFT,
-            /** Right-associative rule. */
-            RIGHT
-        }
-
         /**
          * Reference to a terminal or variable in the grammar. A separate class
          * from {@link Grammar.Item} is needed to attach attributes to each
