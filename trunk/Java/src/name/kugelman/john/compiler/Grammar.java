@@ -524,12 +524,22 @@ public class Grammar {
     
 
     /**
-     * Gets the start symbol. This is the root variable in the grammar.
+     * Gets the start symbol. This is the root variable in the grammar. If it
+     * has not been explicitly set then the first variable in the grammar is the
+     * start symbol.
      * 
      * @return the start symbol
      */
     public Variable getStartVariable() {
-        return startVariable;
+        if (startVariable != null) {
+            return startVariable;
+        }
+        else if (!variables.isEmpty()) {
+            return variables.get(0);
+        }
+        else {
+            return null;
+        }
     }
     
     /**
