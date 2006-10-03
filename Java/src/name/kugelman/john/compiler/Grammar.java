@@ -418,6 +418,8 @@ public class Grammar {
 
         /**
          * Does this rule contain an {@link ErrorReference}?
+         * 
+         * @return a boolean indicating if this is an error production
          */
         public boolean isErrorRule() {
             for (Reference reference: items) {
