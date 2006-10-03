@@ -35,7 +35,7 @@ public class Grammar {
          *            are discarded after being parsed and are not added to the
          *            parse tree
          */
-        public Terminal(String tokenClass, boolean isDiscardable) {
+        Terminal(String tokenClass, boolean isDiscardable) {
             this.tokenClass    = tokenClass;
             this.isDiscardable = isDiscardable;
         }
@@ -82,15 +82,6 @@ public class Grammar {
         private Rule       parentRule;
         
         /**
-         * Creates a new variable.
-         * 
-         * @param name  this variable's name
-         */
-        public Variable(String name) {
-            this(name, null);
-        }
-        
-        /**
          * Creates a new auxiliary variable: a variable created internally to
          * implement an extended grammar item like <tt>&lt;optional&gt;</tt> or
          * <tt>&lt;repeat&gt;</tt>.
@@ -98,7 +89,7 @@ public class Grammar {
          * @param name        this variable's name
          * @param parentRule  this variable's parent rule
          */
-        public Variable(String name, Rule parentRule) {
+        Variable(String name, Rule parentRule) {
             this.name       = name;
             this.rules      = new ArrayList<Rule>();
             this.parentRule = parentRule;
@@ -463,6 +454,101 @@ public class Grammar {
     private Variable       startVariable;
     private Terminal       errorTerminal;
     
+    public Grammar() {
+        this.terminals     = new ArrayList<Terminal>();
+        this.variables     = new ArrayList<Variable>();
+        this.startVariable = null;
+        this.errorTerminal = addTerminal("@error");
+    }
+    
+    
+    /**
+     * Adds a new terminal to this grammar.
+     * 
+     * @param tokenClass
+     *            the token class associated with the terminal
+     *            
+     * @return the new terminal
+     */
+    public Terminal addTerminal(String tokenClass) {
+        return addTerminal(tokenClass, false);
+    }
+    
+    /**
+     * Adds a new, possibly discardable terminal to this grammar.
+     * 
+     * @param tokenClass
+     *            the token class associated with the terminal
+     * @param isDiscardable
+     *            if <code>true</code>, all instances of the terminal are
+     *            discarded after being parsed and are not added to the parse
+     *            tree
+     *            
+     * @return the new terminal
+     */
+    public Terminal addTerminal(String tokenClass, boolean isDiscardable) {
+        Terminal terminal = new Terminal(tokenClass, isDiscardable);
+        
+        terminals.add(terminal);
+        
+        return terminal;
+    }
+    
+    /**
+     * Adds a new variable to this grammar.
+     * 
+     * @param name  the variable's name
+     * 
+     * @return  the new variable
+     */
+    public Variable addVariable(String name) {
+        return addVariable(name, null);
+    }
+    
+    /**
+     * Adds a new auxiliary variable to this grammar.
+     * 
+     * @param name        the variable's name
+     * @param parentRule  the rule for which the auxiliary variable is being
+     *                    created
+     * 
+     * @return  the new variable
+     */
+    public Variable addVariable(String name, Rule parentRule) {
+        Variable variable = new Variable(name, parentRule);
+        
+        variables.add(variable);
+        
+        return variable;
+    }
+    
+
+    /**
+     * Gets the start symbol. This is the root variable in the grammar.
+     * 
+     * @return the start symbol
+     */
+    public Variable getStartVariable() {
+        return startVariable;
+    }
+    
+    /**
+     * Sets the start symbol.
+     * 
+     * @param startVariable  the start symbol
+     */
+    public void setStartVariable(Variable startVariable) {
+        this.startVariable = startVariable;
+    }
+    
+    /**
+     * Gets the special error terminal used in error rules to symbolize a
+     * parsing error.
+     * 
+     * @return the error terminal
+     * 
+     * @see Rule#isErrorRule()
+     */
     public Terminal getErrorTerminal() {
         return errorTerminal;
     }
