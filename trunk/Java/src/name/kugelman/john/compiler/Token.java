@@ -15,12 +15,15 @@ public abstract class Token {
      * many (like "identifier" or "keyword").
      * <p>
      * Token classes correspond to "terminals" in a context-free grammar.
+     * The only requirement of the objects returned by this method is that they
+     * implement <code>equals</code>. Strings and enumerations would be obvious
+     * choices.
      * 
      * @return this token's class
      * 
      * @see Grammar.Terminal
      */
-    public abstract Enum<?> getTokenClass();
+    public abstract Object getTokenClass();
     
     /**
      * Gets this token's lexeme. A lexeme is a token's exact lexical

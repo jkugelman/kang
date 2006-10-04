@@ -21,7 +21,7 @@ public class ParseTree {
      * 
      * @see Grammar.Item
      */
-    public abstract class Node {
+    public abstract static class Node {
         /**
          * This node's parent, or <code>null</code> if it has none.
          */
@@ -86,7 +86,7 @@ public class ParseTree {
      * @see Token
      * @see Grammar.Terminal
      */
-    public class Terminal extends Node {
+    public static class Terminal extends Node {
         private Token token;
 
         /**
@@ -136,7 +136,7 @@ public class ParseTree {
      * 
      * @see Grammar.Variable
      */
-    public class Variable extends Node {
+    public static class Variable extends Node {
         private Grammar.Rule rule;
         private List<Node>   children;
         private Position     tokenizerPosition;
@@ -214,9 +214,8 @@ public class ParseTree {
      * Represents an error in the parse tree.
      * 
      * @see Grammar.Rule.ErrorReference
-     * @see Grammar#getErrorTerminal()
      */
-    public class Error extends Node {
+    public static class Error extends Node {
         private Token                        token;
         private Collection<Grammar.Terminal> expectedTerminals;
 
