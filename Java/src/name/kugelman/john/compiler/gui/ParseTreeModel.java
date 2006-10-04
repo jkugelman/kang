@@ -2,16 +2,26 @@ package name.kugelman.john.compiler.gui;
 
 import java.util.*;
 
+import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.*;
 
 import name.kugelman.john.compiler.*;
 import name.kugelman.john.compiler.ParseTree.*;
 
+/**
+ * An implementation of {@link TreeModel} for {@link ParseTree}s.
+ */
 public class ParseTreeModel implements TreeModel {
     private ParseTree                     parseTree;
     private Collection<TreeModelListener> listeners;
     
+    /**
+     * Creates a new model that reflects the specified parse tree.
+     * 
+     * @param parseTree
+     *            a parse tree to display in a {@link JTree}
+     */
     public ParseTreeModel(ParseTree parseTree) {
         this.parseTree = parseTree;
         this.listeners = new ArrayList<TreeModelListener>();
