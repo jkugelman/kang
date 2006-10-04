@@ -123,6 +123,11 @@ public abstract class Tokenizer {
         public int getColumn() {
             return column;
         }
+        
+        
+        public String toString() {
+            return String.format("%s(%d,%d)", file, line + 1, column + 1);
+        }
     }
 
     /**
