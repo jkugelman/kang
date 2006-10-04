@@ -2,6 +2,8 @@ package name.kugelman.john.compiler;
 
 import java.util.*;
 
+import name.kugelman.john.compiler.Tokenizer.*;
+
 /**
  * Represents a program that has been parsed via a {@link Grammar} in tree form,
  * with each node being either a terminal (one {@link Token} from the source
@@ -21,11 +23,18 @@ public class ParseTree {
      */
     public abstract class Node {
         /**
+         * This node's parent, or <code>null</code> if it has none.
+         */
+        protected Node parent;
+        
+        /**
          * Gets the node that has this node as a child.
          * 
          * @return this node's parent, or <code>null</code> if it has none
          */
-        public abstract Node getParent();
+        public Node getParent() {
+            return parent;
+        }
 
         /**
          * Gets the child nodes of this node. The default implementation returns
@@ -122,8 +131,7 @@ public class ParseTree {
      * 
      * @see Grammar.Variable
      */
-    public class Variable extends Node
-    {
+    public class Variable extends Node {
         private Grammar.Rule rule;
         private List<Node>   children;
         private Position     tokenizerPosition;
@@ -143,6 +151,10 @@ public class ParseTree {
             this.rule              = rule;
             this.children          = new ArrayList<Node>(children);
             this.tokenizerPosition = tokenizerPosition;
+            
+            for (Node child: children) {
+                child.parent = this;
+            }
         }
 
         /**
