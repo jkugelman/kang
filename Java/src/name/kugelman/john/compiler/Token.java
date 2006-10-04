@@ -1,3 +1,5 @@
+package name.kugelman.john.compiler;
+
 /**
  * Minimal interface for the tokens produced by a lexer. Tokens are indivisible
  * atomic pieces of text from a program, such as numbers, symbols, and
