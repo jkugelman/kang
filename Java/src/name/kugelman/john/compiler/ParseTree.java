@@ -123,6 +123,11 @@ public class ParseTree {
         public Position getEnd() {
             return token.getEnd();
         }
+        
+        
+        public String toString() {
+            return token.toString();
+        }
     }
 
 
@@ -198,6 +203,11 @@ public class ParseTree {
             
             return children.get(children.size() - 1).getEnd();
         }
+        
+        
+        public String toString() {
+            return rule.toString();
+        }
     }
 
     /**
@@ -261,6 +271,11 @@ public class ParseTree {
         
         public Position getEnd() {
             return getPosition();
+        }
+        
+        
+        public String toString() {
+            return "<error>";
         }
     }
 
