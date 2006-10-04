@@ -71,14 +71,14 @@ public abstract class Tokenizer {
     /**
      * Represents a position in the token source. 
      */
-    public abstract class Position {
+    public abstract static class Position {
     }
     
     /**
      * Represents a line number and column in a particular source file. Lines
      * and columns are numbered starting from 0, not 1.
      */
-    public class FilePosition extends Position {
+    public static class FilePosition extends Position {
         private File file;
         private int  line, column;
 
