@@ -371,6 +371,21 @@ public class Grammar {
             return reference;
         }
         
+        /**
+         * Adds a special error marker to the end of the rule. When the parser
+         * encounters a parsing error it will add an error marker to the token
+         * stream and then look for rules with error markers in them so it can
+         * recover from the error and continue parsing.
+         * 
+         * @return a new {@link ErrorReference}
+         */
+        public ErrorReference addError() {
+            ErrorReference reference = new ErrorReference();
+            
+            items.add(reference);
+            return reference;
+        }
+        
         
         /**
          * Gets this rule's precedence set. Only rules belonging to the same
