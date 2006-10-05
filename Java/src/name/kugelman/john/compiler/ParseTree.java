@@ -21,11 +21,18 @@ public class ParseTree {
      * 
      * @see Grammar.Item
      */
-    public abstract static class Node {
+    public abstract class Node {
         /**
          * This node's parent, or <code>null</code> if it has none.
          */
         protected Node parent;
+        
+        /**
+         * This node's children. Defaults to an empty, immutable list. To add
+         * children don't add to the default list; create a new list instead and
+         * add to that.
+         */
+        protected List<Node> children = Collections.emptyList();
         
         /**
          * Gets the node that has this node as a child.
@@ -37,13 +44,13 @@ public class ParseTree {
         }
 
         /**
-         * Gets the child nodes of this node. The default implementation returns
-         * an empty list.
+         * Gets the child nodes of this node. Leaf nodes (terminals and errors)
+         * will return an empty list.
          * 
          * @return this node's children
          */
         public List<Node> getChildren() {
-            return Collections.emptyList();
+            return Collections.unmodifiableList(children);
         }
 
         /**
@@ -86,7 +93,7 @@ public class ParseTree {
      * @see Token
      * @see Grammar.Terminal
      */
-    public static class Terminal extends Node {
+    public class Terminal extends Node {
         private Token token;
 
         /**
@@ -136,9 +143,8 @@ public class ParseTree {
      * 
      * @see Grammar.Variable
      */
-    public static class Variable extends Node {
+    public class Variable extends Node {
         private Grammar.Rule rule;
-        private List<Node>   children;
         private Position     tokenizerPosition;
         
         /**
@@ -169,15 +175,6 @@ public class ParseTree {
          */
         public Grammar.Rule getRule() {
             return rule;
-        }
-
-        /**
-         * Gets the terminals and variables this variable was replaced by.
-         * 
-         * @return the nodes this variable was replaced by
-         */
-        public List<Node> getChildren() {
-            return Collections.unmodifiableList(children);
         }
 
         /**
@@ -215,7 +212,7 @@ public class ParseTree {
      * 
      * @see Grammar.Rule.ErrorReference
      */
-    public static class Error extends Node {
+    public class Error extends Node {
         private Token                        token;
         private Collection<Grammar.Terminal> expectedTerminals;
 
@@ -282,14 +279,10 @@ public class ParseTree {
     private Variable root;
 
     /**
-     * Creates a parse tree with <code>root</code> at the top of the tree,
-     * corresponding to the start symbol of the grammar.
-     * 
-     * @param root
-     *            the root of the parse tree
+     * Creates an empty parse tree.
      */
-    public ParseTree(Variable root) {
-        this.root = root;
+    public ParseTree() {
+        this.root = null;
     }
 
     /**
@@ -302,5 +295,14 @@ public class ParseTree {
      */
     public Variable getRoot() {
         return root;
+    }
+    
+    /**
+     * Sets the root node of the tree.
+     * 
+     * @param root  the root node
+     */
+    public void setRoot(Variable root) {
+        this.root = root;
     }
 }
