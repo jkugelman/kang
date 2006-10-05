@@ -13,7 +13,7 @@ public class Grammar {
     /**
      * Base class for the {@link Terminal} and {@link Variable} classes.
      */
-    public abstract static class Item {
+    public abstract class Item {
     }
 
     /**
@@ -21,7 +21,7 @@ public class Grammar {
      * the lexer. Terminals are the atomic units of text that make up a source
      * program.
      */
-    public static class Terminal extends Item {
+    public class Terminal extends Item {
         private Object  tokenClass;
         private boolean isDiscardable;
 
@@ -78,19 +78,11 @@ public class Grammar {
      * Represents a variable (or non-terminal), which has associated rules (or
      * productions) that determine the possible derivations in the grammar.
      */
-    public static class Variable extends Item {
+    public class Variable extends Item {
         private String     name;
         private List<Rule> rules;
         private Rule       parentRule;
         
-        /**
-         * Creates a new auxiliary variable: a variable created internally to
-         * implement an extended grammar item like <tt>&lt;optional&gt;</tt> or
-         * <tt>&lt;repeat&gt;</tt>.
-         * 
-         * @param name        this variable's name
-         * @param parentRule  this variable's parent rule
-         */
         Variable(String name, Rule parentRule) {
             this.name       = name;
             this.rules      = new ArrayList<Rule>();
@@ -111,35 +103,23 @@ public class Grammar {
          * 
          * @return this variable's rules
          */
-        public List<Rule> getRules() {
+        public List<Rule> rules() {
             return Collections.unmodifiableList(rules);
         }
         
         /**
-         * Adds a replacement rule to this variable's list of possible rules.
+         * Adds a new replacement rule to this variable's list of possible
+         * rules. New rules by default have no items on the right-side and will
+         * look like "<i>variable</i> → ε".
          * 
-         * @param items  the items on the right side of the rule
-         * 
-         * @return  the new {@link Rule}
+         * @return the new {@link Rule}
          */
-        public Rule addRule(List<Rule.Reference> items) {
-            Rule rule = new Rule(this, items);
+        public Rule addRule() {
+            Rule rule = new Rule(this);
             
             rules.add(rule);
             
             return rule;
-        }
-        
-        /**
-         * Adds a replacement rule to this variable's list of possible rules.
-         * Accepts a variable number of arguments.
-         * 
-         * @param items  the items on the right side of the rule
-         * 
-         * @return  the new {@link Rule}
-         */
-        public Rule addRule(Rule.Reference... items) {
-            return addRule(Arrays.asList(items));
         }
 
         /**
@@ -154,7 +134,6 @@ public class Grammar {
         public Rule getParentRule() {
             return parentRule;
         }
-
 
         /**
          * If <code>true</code>, the variable is collapsed after being parsed,
@@ -178,12 +157,10 @@ public class Grammar {
     
     /**
      * This is the object that will be returned by {@link
-     * ErrorReference#getItem()}.
+     * Rule.ErrorReference#getItem()}.
      */
-    private static class Error extends Item {
-        public static final Error instance = new Error();
-        
-        private Error() {
+    public class Error extends Item {
+        Error() {
         }
         
         public String toString() {
@@ -192,31 +169,31 @@ public class Grammar {
     }
     
     /**
+     * The associativity of a {@link Rule}, which allows the parser to resolve
+     * certain ambiguities in a grammar.
+     * <p>
+     * Java does not allow enums to be defined inside of a non-static inner
+     * class, so this enum is here instead of within <code>Rule</code>. 
+     */
+    public enum Associativity {
+        /** Non-associative rule. */
+        NONE,
+        /** Left-associative rule. */
+        LEFT,
+        /** Right-associative rule. */
+        RIGHT
+    }
+
+    /**
      * A single production "variable → variables and terminals".
      */
-    public static class Rule {
-        /**
-         * The associativity of a {@link Rule}, which allows the parser to resolve
-         * certain ambiguities in a grammar.
-         * <p>
-         * Java does not allow enums to be defined inside of a non-static inner
-         * class, so this enum is here instead of within <code>Rule</code>. 
-         */
-        public enum Associativity {
-            /** Non-associative rule. */
-            NONE,
-            /** Left-associative rule. */
-            LEFT,
-            /** Right-associative rule. */
-            RIGHT
-        }
-
+    public class Rule {
         /**
          * Reference to a terminal or variable in the grammar. A separate class
          * from {@link Grammar.Item} is needed to attach attributes to each
          * reference.
          */
-        public abstract static class Reference {
+        public abstract class Reference {
             /**
              * Gets the terminal or variable being referenced.
              *
@@ -228,20 +205,13 @@ public class Grammar {
         /**
          * Reference to a terminal in a production rule.
          */
-        public static class TerminalReference extends Reference {
+        public class TerminalReference extends Reference {
             private Terminal terminal;
-            private boolean  isDiscarded;
+            private boolean  isPreserved;
 
-            /**
-             * Creates a new terminal reference as part of a production rule.
-             * 
-             * @param terminal     the terminal in the rule
-             * @param isDiscarded  <code>true</code>  to discard the terminal in the parse tree during parsing,
-             *                     <code>false</code> to preserve it
-             */
-            public TerminalReference(Terminal terminal, boolean isDiscarded) {
+            TerminalReference(Terminal terminal, boolean isPreserved) {
                 this.terminal    = terminal;
-                this.isDiscarded = isDiscarded;
+                this.isPreserved = isPreserved;
 
             }
 
@@ -260,14 +230,14 @@ public class Grammar {
             }
 
             /**
-             * If <code>true</code>, the terminal is discarded after being
+             * If <code>false</code>, the terminal is discarded after being
              * parsed and is not added to the parse tree.
              * 
-             * @return a boolean indicated if the terminal is to be discarded
-             *         after being parsed
+             * @return a boolean indicated if the terminal is to be preserved in
+             *         the parse tree
              */
-            public boolean isDiscarded() {
-                return isDiscarded;
+            public boolean isPreserved() {
+                return isPreserved;
             }
         }
 
@@ -284,7 +254,7 @@ public class Grammar {
              * 
              * @param variable  the variable in the rule
              */
-            public VariableReference(Variable variable) {
+            VariableReference(Variable variable) {
                 this.variable = variable;
             }
 
@@ -308,7 +278,7 @@ public class Grammar {
         /**
          * Reference to an <tt>&lt;error/&gt;</tt> production in a rule.
          */
-        public static class ErrorReference extends Reference {
+        public class ErrorReference extends Reference {
             /**
              * Creates a new error reference.
              */
@@ -316,7 +286,7 @@ public class Grammar {
             }
 
             public Item getItem() {
-                return Error.instance;
+                return errorInstance;
             }
 
         }
@@ -329,16 +299,9 @@ public class Grammar {
         private Integer         precedenceLevel;
         private Associativity   associativity;
 
-        /**
-         * Creates a new rule to replace the specified variable with the
-         * variables and terminals in <code>items</code>.
-         * 
-         * @param variable  the original variable
-         * @param items     the replacement variables and terminals
-         */
-        Rule(Variable variable, List<Reference> items) {
+        Rule(Variable variable) {
             this.variable          = variable;
-            this.items             = items;
+            this.items             = new ArrayList<Reference>();
 
             this.precedenceSet     = null;
             this.precedenceLevel   = null;
@@ -361,8 +324,51 @@ public class Grammar {
          * 
          * @return the items on the right side of the rule
          */
-        public List<Reference> getItems() {
+        public List<Reference> items() {
             return Collections.unmodifiableList(items);
+        }
+        
+        /**
+         * Adds a terminal to the end of the rule.
+         * 
+         * @param terminal  the terminal in the rule
+         * 
+         * @return a new {@link TerminalReference}
+         */
+        public TerminalReference addTerminal(Terminal terminal) {
+            return addTerminal(terminal, true);
+        }
+        
+        /**
+         * Adds a terminal to the end of the rule. The terminal will be
+         * discarded during parsing if <code>isPreserved</code> is
+         * <code>false</code>.
+         * 
+         * @param terminal     the terminal in the rule
+         * @param isPreserved  <code>true</code>  to add the terminal to the parse tree,
+         *                     <code>false</code> to discard it
+         * 
+         * @return a new {@link TerminalReference}
+         */
+        public TerminalReference addTerminal(Terminal terminal, boolean isPreserved) {
+            TerminalReference reference = new TerminalReference(terminal, isPreserved);
+            
+            items.add(reference);
+            return reference;
+        }
+
+        /**
+         * Adds a variable to the end of the rule.
+         *  
+         * @param variable  the variable in the rule
+         * 
+         * @return a new {@link VariableReference}
+         */
+        public VariableReference addVariable(Variable variable) {
+            VariableReference reference = new VariableReference(variable);
+            
+            items.add(reference);
+            return reference;
         }
         
         
@@ -484,11 +490,13 @@ public class Grammar {
     private List<Terminal> terminals;
     private List<Variable> variables;
     private Variable       startVariable;
+            Error          errorInstance;
     
     public Grammar() {
         this.terminals     = new ArrayList<Terminal>();
         this.variables     = new ArrayList<Variable>();
         this.startVariable = null;
+        this.errorInstance = new Error();
     }
     
     
