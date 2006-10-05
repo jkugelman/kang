@@ -8,7 +8,6 @@ import javax.swing.event.*;
 import javax.swing.tree.*;
 
 import name.kugelman.john.compiler.*;
-import name.kugelman.john.compiler.Grammar.Rule.*;
 import name.kugelman.john.compiler.ParseTree.*;
 import name.kugelman.john.compiler.Tokenizer.*;
 
@@ -73,11 +72,12 @@ public class ParseTreeModel implements TreeModel {
     }
     
     private static ParseTree createParseTree() {
-        final Grammar          grammar  = new Grammar();
-        final Grammar.Terminal terminal = grammar.addTerminal("identifier");
-        final Grammar.Variable variable = grammar.addVariable("X");
-        final File             file     = new File("source.kang");
-        final Position         position = new FilePosition(file, 0, 0);
+        final Grammar          grammar   = new Grammar();
+        final Grammar.Terminal terminal  = grammar.addTerminal("identifier");
+        final Grammar.Variable variable  = grammar.addVariable("X");
+        final File             file      = new File("source.kang");
+        final Position         position  = new FilePosition(file, 0, 0);
+        final ParseTree        parseTree = new ParseTree();
         
         final Token token = new Token() {
             public Object   getTokenClass() { return "identifier"; }
@@ -87,8 +87,12 @@ public class ParseTreeModel implements TreeModel {
         };
             
         variable.addRule();
-        variable.addRule(new TerminalReference(terminal, false));
+        variable.addRule();
+
+        variable.rules().get(1).addTerminal(terminal);
         
-        return new ParseTree(new ParseTree.Variable(variable.getRules().get(1), Arrays.asList(new Node[] {new ParseTree.Terminal(token)}), position));
+        parseTree.setRoot(parseTree.new Variable(variable.rules().get(1), Arrays.asList(new Node[] {parseTree.new Terminal(token)}), position));
+        
+        return parseTree;
     }
 }
