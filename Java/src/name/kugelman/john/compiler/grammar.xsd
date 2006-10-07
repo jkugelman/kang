@@ -1,0 +1,274 @@
+<?xml version="1.0"?>
+
+<schema xmlns="http://www.w3.org/2001/XMLSchema">
+  <element name="grammar">
+    <annotation>
+      <documentation>
+        Represents a context-free grammar that describes the manner in which strings in
+        a context-free language can be generated. A context-free grammar consists of a
+        set of terminals, or tokens, and a set of variables, or nonterminals, which
+        define the substitution rules used to derive strings in the language. Starting
+        with a special variable called the start symbol, variables are replaced by one
+        of their rules until a string with no variables is formed. The language consists
+        of all strings of terminals that can be derived in this manner.
+      </documentation>
+      
+      <documentation>
+        Given the grammar for a context-free language, it is then possible to construct
+        a parser to determine what sequence of derivations will produce a given string,
+        in effect reconstructing a derivation tree for the string. In the context of
+        programming languages, a "string" is a source file (after it has been decomposed
+        into a sequence of tokens by the lexer).
+      </documentation>
+    </annotation>
+  
+    <complexType>
+      <sequence>
+        <element ref="terminal" minOccurs="1" maxOccurs="unbounded"/>
+        <element ref="variable" minOccurs="1" maxOccurs="unbounded"/>
+      </sequence>
+      
+      <attribute name="language" type="string" use="required"/>
+    </complexType>
+    
+    <key name="terminalName">
+      <annotation><documentation>
+        The name of a terminal. Each terminal must have a unique name.
+      </documentation></annotation>
+    
+      <selector xpath="terminal"/>
+      <field    xpath="@name"/>
+    </key>
+    
+    <key name="variableName">
+      <annotation><documentation>
+        The name of a variable. Each variable must have a unique name.
+      </documentation></annotation>
+      
+      <selector xpath="variable"/>
+      <field    xpath="@name"/>
+    </key>
+
+    <keyref name="terminalReference" refer="terminalName">
+      <annotation><documentation>
+        Determines which terminal a rule item refers to.
+      </documentation></annotation>
+    
+      <selector xpath=".//rule/terminal|.//optional/terminal|.//repeat/terminal"/>
+      <field    xpath="."/>
+    </keyref>
+
+    <keyref name="variableReference" refer="variableName">
+      <annotation><documentation>
+        Determines which variable a rule item refers to.
+      </documentation></annotation>
+    
+      <selector xpath=".//rule/variable|.//optional/variable|.//repeat/variable"/>
+      <field    xpath="."/>
+    </keyref>
+  </element>
+  
+  <element name="terminal">
+    <annotation><documentation>
+      Represents a token in the source program. The terminal will be matched with
+      tokens whose Token.Class matches the terminal's name.
+    </documentation></annotation>
+    
+    <complexType>
+      <attribute name="name" type="itemName" use="required">
+        <annotation><documentation>
+          The name of the terminal.
+        </documentation></annotation>
+      </attribute>
+      
+      <attribute name="discard" type="yesOrNo" default="no">
+        <annotation><documentation>
+          If set to "yes", then by default all tokens matching this terminal will be
+          parsed but not added to the parse tree. This value can be overridden by
+          specifying the "discard" attribute on a particular terminal reference in a rule.
+        </documentation></annotation>
+      </attribute>
+    </complexType>
+  </element>
+        
+  <element name="variable">
+    <annotation><documentation>
+      Represents a nonterminal in the context-free grammar. During the derivation of a
+      terminal string, variables are replaced by the items of one of their rules.
+    </documentation></annotation>
+  
+    <complexType>
+      <choice minOccurs="0" maxOccurs="unbounded">
+        <element name="orderedByPrecedence">
+          <annotation><documentation>
+            Contains a series of rules groups which are assigned precedence and
+            associativity information, with earlier groups having higher precedence than
+            later ones.
+
+            Precedence allows the parser to resolve certain shift/reduce conflicts arising
+            from ambiguous grammars, usually involving arithmetic expressions. In case of
+            conflict, the parser will shift/reduce by the rule with higher precedence.
+            
+            Note that precedence is only useful for rules of the same variable. Precedence
+            information is not used to resolve conflicts between rules of different
+            variables.
+          </documentation></annotation>
+          
+          <complexType><sequence>
+            <element name="group" maxOccurs="unbounded">
+              <annotation><documentation>
+                The rules in each group have equal precedence. Earlier groups have higher
+                precedence than later ones.
+              </documentation></annotation>
+              
+              <complexType>
+                <sequence>
+                  <element ref="rule" maxOccurs="unbounded"/>
+                </sequence>
+              
+                <attribute name="associativity" use="optional">
+                  <annotation><documentation>
+                    Rules in a group can optionally be given an associativity, which allows the
+                    parser to resolve shift/reduce conflicts arising from an ambiguous grammar when
+                    precedence information is insufficient. The parser uses associativity
+                    information to determine whether to shift or reduce when the two options involve
+                    rules of equal precedence.
+                  </documentation></annotation>
+                
+                  <simpleType>
+                    <restriction base="string">
+                      <enumeration value="left">
+                        <annotation><documentation>
+                          Indicates a left-associative group. Addition, for example, is left-associative.
+                          The expression x+y+z is normally grouped as (x+y)+z rather than x+(y+z). For
+                          left-associative rules, shift/reduce conflicts are resolved in favor of reduce.
+                        </documentation></annotation>
+                      </enumeration>
+                      
+                      <enumeration value="right">
+                        <annotation><documentation>
+                          Indicates a right-associative group. Exponentiation, for example, is
+                          right-associative. The expression x^y^z is normally grouped as x^(y^z) rather
+                          than (x^y)^z. For right-associative rules, shift/reduce conflicts are resolved
+                          in favor of shift.
+                        </documentation></annotation>
+                      </enumeration>
+                    </restriction>
+                  </simpleType>
+                </attribute>
+              </complexType>
+            </element>
+          </sequence></complexType>
+        </element>
+      
+        <element ref="rule"/>
+      </choice>
+      
+      <attribute name="name" type="itemName" use="required">
+        <annotation><documentation>
+          The name of the variable.
+        </documentation></annotation>
+      </attribute>
+    </complexType>
+  </element>
+  
+  <element name="rule" type="ruleItems">
+    <annotation><documentation>
+      Represents one possible substitution pattern for a variable. A rule with no
+      items is an empty rule, and is usually written as ε (epsilon) or λ (lambda) in
+      compiler texts.
+    </documentation></annotation>
+  </element>
+  
+  <element name="group" type="ruleItems">
+    <annotation><documentation>
+      Specifies a set of items that should be parsed as a single entity. Grouping
+      items is useful when specifying &lt;choice/&gt;s that contain more than one
+      parse item.
+    </documentation></annotation>
+  </element>
+
+  <element name="optional" type="ruleItems">
+    <annotation><documentation>
+      Specifies that a set of items is optional. This is the same as &lt;repeat
+      minimum="0" maximum="1"&gt;.
+    </documentation></annotation>
+  </element>
+    
+  <element name="repeat">
+    <annotation><documentation>
+      Specifies that a set of items may be repeated at least the minimum and no more
+      than the maximum number of times specified. If the maximum is not specified, the
+      rules are repeated an unbounded number of times.
+    </documentation></annotation>
+    
+    <complexType><complexContent><extension base="ruleItems">
+      <attribute name="minimum" type="nonNegativeInteger" use="required"/>
+      <attribute name="maximum" type="nonNegativeInteger"/>
+    </extension></complexContent></complexType>
+  </element>
+  
+  <element name="choice" type="ruleItems">
+    <annotation><documentation>
+      Specifies that any of the listed items are possible.
+    </documentation></annotation>
+  </element>
+    
+  <complexType name="ruleItems">
+    <choice minOccurs="0" maxOccurs="unbounded">
+      <element name="terminal">
+        <annotation><documentation>
+          The name of a terminal in the grammar.
+        </documentation></annotation>
+        
+        <complexType><simpleContent><extension base="itemName">
+          <attribute name="discard" type="yesOrNo">
+            <annotation><documentation>
+              A discardable terminal will be parsed as normal but will not be added to the
+              parse tree.
+            </documentation></annotation>
+          </attribute>
+        </extension></simpleContent></complexType>
+      </element>
+      
+      <element name="variable" type="itemName">
+        <annotation><documentation>
+          The name of a variable in the grammar.
+        </documentation></annotation>
+      </element>
+      
+      <element name="error">
+        <annotation><documentation>
+          Indicates the location of a fictitious "error" token an its corresponding error
+          message. When the parser encounters an error, it searches for rules with "error"
+          tokens in order to recover and continue parsing.
+        </documentation></annotation>
+        
+        <complexType/>
+      </element>
+      
+      <element ref="group"/>
+      <element ref="optional"/>
+      <element ref="repeat"/>
+      <element ref="choice"/>
+    </choice>
+  </complexType>
+  
+  <simpleType name="yesOrNo">
+    <restriction base="string">
+      <enumeration value="yes"/>
+      <enumeration value="no"/>
+    </restriction>
+  </simpleType>
+  
+  <simpleType name="itemName">
+    <annotation><documentation>
+      Terminal and variable names can contain any character except the null character
+      (0x0000), which is reserved by the compiler for internal use.
+    </documentation></annotation>
+  
+    <restriction base="string">
+      <pattern value="[^\0]+"/>
+    </restriction>
+  </simpleType>  
+</schema>
