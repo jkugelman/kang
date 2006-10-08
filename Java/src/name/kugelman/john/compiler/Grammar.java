@@ -447,7 +447,7 @@ public class Grammar {
          *                         <code>null</code>
          */
         public void setPrecedenceLevel(Integer precedenceLevel) {
-            this.precedenceSet = precedenceLevel;
+            this.precedenceLevel = precedenceLevel;
         }
 
         /**
@@ -680,7 +680,7 @@ public class Grammar {
         
             factory.setCoalescing    (true);
             factory.setNamespaceAware(true);
-            factory.setSchema        (getSchema());
+//            factory.setSchema        (getSchema());
             
             try {
                 documentBuilder = factory.newDocumentBuilder();
@@ -742,7 +742,7 @@ public class Grammar {
             // Read the terminals.
             for (Element xmlTerminal: xmlTerminals) {
                 String  name    = xmlTerminal.getAttributeValue("name");
-                boolean discard = xmlTerminal.getAttributeValue("discard").equals("yes");
+                boolean discard = "yes".equals(xmlTerminal.getAttributeValue("discard"));
     
                 grammar.addTerminal(name, discard);
             }
@@ -835,12 +835,16 @@ public class Grammar {
                 Rule     newRule     = newVariable.rules().get(0);
                 
                 addItems(grammar, newRule, xmlItem);
+
+                rule.addVariable(newVariable);
             }
             else if ("optional".equals(xmlItem.getName())) {
                 // Let optionalVariable → xmlItem | ε.
                 Variable newVariable = grammar.newAuxiliaryVariable(rule, 2);
 
                 addItems(grammar, newVariable.rules().get(0), xmlItem);
+            
+                rule.addVariable(newVariable);
             }
             else if ("repeat".equals(xmlItem.getName())) {
                 int minimum = Integer.parseInt(xmlItem.getAttributeValue("minimum"));
@@ -858,6 +862,8 @@ public class Grammar {
                     for (int i = 0; i < minimum; ++i) {
                         addItems(grammar, newVariable.rules().get(1), xmlItem);
                     }
+                
+                    rule.addVariable(newVariable);
                 }
                 else {
                     int maximum = Integer.parseInt(xmlItem.getAttributeValue("maximum"));
@@ -873,6 +879,8 @@ public class Grammar {
                             addItems(grammar, newRule, xmlItem);
                         }
                     }
+
+                    rule.addVariable(newVariable);
                 }
             }
             else if ("choice".equals(xmlItem.getName())) {
@@ -882,6 +890,8 @@ public class Grammar {
                 for (Element xmlChoice: (List<Element>) xmlItem.getChildren()) {
                     addItems(grammar, newVariable.addRule(), Collections.singletonList(xmlChoice));
                 }
+                
+                rule.addVariable(newVariable);
             }
             else if ("error".equals(xmlItem.getName())) {
                 rule.addError();
@@ -890,6 +900,88 @@ public class Grammar {
                 Debug.logError("Unknown rule item <" + xmlItem.getName() + ">.");
             }
         }
-       
+    }
+    
+    
+    public void print(PrintStream out) {
+        out.print("Terminals:");
+        
+        for (Terminal terminal: terminals.values()) {
+            out.printf(" %s", terminal);
+        }
+        
+        out.println();
+        out.println();
+        
+        for (Variable variable: variables.values()) {
+            out.printf("%s:%n", variable.getName());
+            
+            for (Rule rule: variable.rules()) {
+                out.printf("    %s", rule);
+                
+                if (rule.getPrecedenceSet() != null) {
+                    out.printf(" (group = %d, precedence = %d, associativity = %s)",
+                        rule.getPrecedenceSet  (),
+                        rule.getPrecedenceLevel(),
+                        rule.getAssociativity  ()
+                    );
+                }
+                
+                out.println();
+            }
+            
+            out.println();
+        }
+    }
+    
+    public static void main(String[] arguments) {
+        String grammarXml =
+            "<grammar>"
+          + "  <terminal name='+'/>"                    + "\n"
+          + "  <terminal name='-'/>"                    + "\n"
+          + "  <terminal name='*'/>"                    + "\n"
+          + "  <terminal name='/'/>"                    + "\n"
+          + "  <terminal name='identifier'/>"           + "\n"
+          + "  "                                        + "\n"
+          + "  <variable name='expression'>"            + "\n"
+          + "    <orderedByPrecedence>"                 + "\n"
+          + "      <group associativity='left'>"        + "\n"
+          + "        <rule>"                            + "\n"
+          + "          <variable>expression</variable>" + "\n"
+          + "          <choice>"                        + "\n"
+          + "            <terminal>+</terminal>"        + "\n"
+          + "            <terminal>-</terminal>"        + "\n"
+          + "          </choice>"                       + "\n"
+          + "          <variable>expression</variable>" + "\n"
+          + "        </rule>"                           + "\n"
+          + "      </group>"                            + "\n"
+          + "      "                                    + "\n"
+          + "      <group associativity='left'>"        + "\n"
+          + "        <rule>"                            + "\n"
+          + "          <variable>expression</variable>" + "\n"
+          + "          <choice>"                        + "\n"
+          + "            <terminal>*</terminal>"        + "\n"
+          + "            <terminal>/</terminal>"        + "\n"
+          + "          </choice>"                       + "\n"
+          + "          <variable>expression</variable>" + "\n"
+          + "        </rule>"                           + "\n"
+          + "      </group>"                            + "\n"
+          + "    </orderedByPrecedence>"                + "\n"
+          + "    "                                      + "\n"
+          + "    <rule>"                                + "\n"
+          + "      <terminal>identifier</terminal>"     + "\n"
+          + "    </rule>"                               + "\n"
+          + "  </variable>"                             + "\n"
+          + "</grammar>";
+        
+        try {
+            Grammar.fromXML(new ByteArrayInputStream(grammarXml.getBytes())).print(System.out);
+        }
+        catch (SAXException exception) {
+            Debug.logError(exception);
+        }
+        catch (IOException exception) {
+            Debug.logError(exception);
+        }
     }
 }
