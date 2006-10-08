@@ -6,14 +6,12 @@ import java.util.regex.*;
 
 import javax.xml.*;
 import javax.xml.parsers.*;
-import javax.xml.transform.dom.*;
 import javax.xml.transform.stream.*;
 import javax.xml.validation.*;
 
 import name.kugelman.john.util.*;
 
 import org.jaxen.*;
-import org.jaxen.dom.*;
 import org.jaxen.jdom.*;
 import org.jdom.*;
 import org.jdom.input.*;
