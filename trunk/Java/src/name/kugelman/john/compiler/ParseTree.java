@@ -18,8 +18,6 @@ public class ParseTree {
     /**
      * The base class for the different types of nodes that can appear in the
      * parse tree.
-     * 
-     * @see Grammar.Item
      */
     public abstract class Node {
         /**
