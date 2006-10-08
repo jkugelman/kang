@@ -25,17 +25,11 @@ import org.xml.sax.*;
  */
 public class Grammar {
     /**
-     * Base class for the {@link Terminal} and {@link Variable} classes.
-     */
-    public abstract class Item {
-    }
-
-    /**
      * Represents a terminal symbol, which corresponds to a token returned by
      * the lexer. Terminals are the atomic units of text that make up a source
      * program.
      */
-    public class Terminal extends Item {
+    public class Terminal {
         private Object  tokenClass;
         private boolean isDiscardable;
 
@@ -92,7 +86,7 @@ public class Grammar {
      * Represents a variable (or non-terminal), which has associated rules (or
      * productions) that determine the possible derivations in the grammar.
      */
-    public class Variable extends Item {
+    public class Variable {
         private String     name;
         private List<Rule> rules;
         private Rule       parentRule;
@@ -173,7 +167,7 @@ public class Grammar {
      * This is the object that will be returned by {@link
      * Rule.ErrorReference#getItem()}.
      */
-    public class Error extends Item {
+    public class Error {
         Error() {
         }
         
@@ -203,17 +197,19 @@ public class Grammar {
      */
     public class Rule {
         /**
-         * Reference to a terminal or variable in the grammar. A separate class
-         * from {@link Grammar.Item} is needed to attach attributes to each
-         * reference.
+         * Reference to a terminal or variable in the grammar. Because we may
+         * need to annotate individual references with extra information (like
+         * {@link TerminalReference#isPreserved()}), we cannot add {@link
+         * Terminal}s, {@link Variable}s, and {@link Error}s to rules directly.
          */
         public abstract class Reference {
             /**
-             * Gets the terminal or variable being referenced.
+             * Gets the item being referenced. This will be a {@link Terminal},
+             * {@link Variable}, or {@link Error}.
              *
              * @return the referenced item
              */
-            public abstract Item getItem();
+            public abstract Object getItem();
         }
 
         /**
@@ -239,7 +235,7 @@ public class Grammar {
                 return terminal;
             }
 
-            public Item getItem() {
+            public Object getItem() {
                 return terminal;
             }
 
@@ -247,8 +243,8 @@ public class Grammar {
              * If <code>false</code>, the terminal is discarded after being
              * parsed and is not added to the parse tree.
              * 
-             * @return a boolean indicated if the terminal is to be preserved in
-             *         the parse tree
+             * @return a boolean indicating if the terminal is to be preserved
+             *         in the parse tree
              */
             public boolean isPreserved() {
                 return isPreserved;
@@ -282,7 +278,7 @@ public class Grammar {
                 return variable;
             }
 
-            public Item getItem() {
+            public Object getItem() {
                 return variable;
             }
         }
@@ -299,7 +295,7 @@ public class Grammar {
             public ErrorReference() {
             }
 
-            public Item getItem() {
+            public Object getItem() {
                 return errorInstance;
             }
 
@@ -969,6 +965,12 @@ public class Grammar {
           + "    </orderedByPrecedence>"                + "\n"
           + "    "                                      + "\n"
           + "    <rule>"                                + "\n"
+          + "      <optional>"                          + "\n"
+          + "        <choice>"                          + "\n"
+          + "          <terminal>+</terminal>"          + "\n"
+          + "          <terminal>-</terminal>"          + "\n"
+          + "        </choice>"                         + "\n"
+          + "      </optional>"                         + "\n"
           + "      <terminal>identifier</terminal>"     + "\n"
           + "    </rule>"                               + "\n"
           + "  </variable>"                             + "\n"
