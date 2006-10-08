@@ -19,7 +19,7 @@ public class ParseTree {
      * The base class for the different types of nodes that can appear in the
      * parse tree.
      */
-    public abstract class Node {
+    public abstract static class Node {
         /**
          * This node's parent, or <code>null</code> if it has none.
          */
@@ -91,7 +91,7 @@ public class ParseTree {
      * @see Token
      * @see Grammar.Terminal
      */
-    public class Terminal extends Node {
+    public static class Terminal extends Node {
         private Token token;
 
         /**
@@ -141,7 +141,7 @@ public class ParseTree {
      * 
      * @see Grammar.Variable
      */
-    public class Variable extends Node {
+    public static class Variable extends Node {
         private Grammar.Rule rule;
         private Position     tokenizerPosition;
         
@@ -207,10 +207,8 @@ public class ParseTree {
 
     /**
      * Represents an error in the parse tree.
-     * 
-     * @see Grammar.Rule.ErrorReference
      */
-    public class Error extends Node {
+    public static class Error extends Node {
         private Token                        token;
         private Collection<Grammar.Terminal> expectedTerminals;
 
@@ -277,10 +275,12 @@ public class ParseTree {
     private Variable root;
 
     /**
-     * Creates an empty parse tree.
+     * Creates a parse tree.
+     * 
+     * @param root  the root node of the parse tree
      */
-    public ParseTree() {
-        this.root = null;
+    public ParseTree(Variable root) {
+        this.root = root;
     }
 
     /**
@@ -293,14 +293,5 @@ public class ParseTree {
      */
     public Variable getRoot() {
         return root;
-    }
-    
-    /**
-     * Sets the root node of the tree.
-     * 
-     * @param root  the root node
-     */
-    public void setRoot(Variable root) {
-        this.root = root;
     }
 }

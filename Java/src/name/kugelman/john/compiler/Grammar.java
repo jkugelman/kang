@@ -4,18 +4,12 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.*;
 
-import javax.xml.*;
-import javax.xml.parsers.*;
-import javax.xml.transform.stream.*;
-import javax.xml.validation.*;
-
 import name.kugelman.john.util.*;
 
 import org.jaxen.*;
 import org.jaxen.jdom.*;
 import org.jdom.*;
 import org.jdom.input.*;
-import org.xml.sax.*;
 
 /**
  * Reads an XML file containing the specification for a context-free grammar and
@@ -25,11 +19,17 @@ import org.xml.sax.*;
  */
 public class Grammar {
     /**
+     * The base class for {@link Terminal}s and {@link Variable}s.
+     */
+    public abstract class Item {
+    }
+    
+    /**
      * Represents a terminal symbol, which corresponds to a token returned by
      * the lexer. Terminals are the atomic units of text that make up a source
      * program.
      */
-    public class Terminal {
+    public class Terminal extends Item {
         private Object  tokenClass;
         private boolean isDiscardable;
 
@@ -86,7 +86,7 @@ public class Grammar {
      * Represents a variable (or non-terminal), which has associated rules (or
      * productions) that determine the possible derivations in the grammar.
      */
-    public class Variable {
+    public class Variable extends Item {
         private String     name;
         private List<Rule> rules;
         private Rule       parentRule;
@@ -164,19 +164,6 @@ public class Grammar {
     }
     
     /**
-     * This is the object that will be returned by {@link
-     * Rule.ErrorReference#getItem()}.
-     */
-    public class Error {
-        Error() {
-        }
-        
-        public String toString() {
-            return "<error>";
-        }
-    }
-    
-    /**
      * The associativity of a {@link Rule}, which allows the parser to resolve
      * certain ambiguities in a grammar.
      * <p>
@@ -209,7 +196,7 @@ public class Grammar {
              *
              * @return the referenced item
              */
-            public abstract Object getItem();
+            public abstract Item getItem();
         }
 
         /**
@@ -235,7 +222,7 @@ public class Grammar {
                 return terminal;
             }
 
-            public Object getItem() {
+            public Item getItem() {
                 return terminal;
             }
 
@@ -278,27 +265,9 @@ public class Grammar {
                 return variable;
             }
 
-            public Object getItem() {
+            public Item getItem() {
                 return variable;
             }
-        }
-
-
-
-        /**
-         * Reference to an <tt>&lt;error/&gt;</tt> production in a rule.
-         */
-        public class ErrorReference extends Reference {
-            /**
-             * Creates a new error reference.
-             */
-            public ErrorReference() {
-            }
-
-            public Object getItem() {
-                return errorInstance;
-            }
-
         }
 
         
@@ -387,13 +356,10 @@ public class Grammar {
          * stream and then look for rules with error markers in them so it can
          * recover from the error and continue parsing.
          * 
-         * @return a new {@link ErrorReference}
+         * @return a reference to the error marker
          */
-        public ErrorReference addError() {
-            ErrorReference reference = new ErrorReference();
-            
-            items.add(reference);
-            return reference;
+        public TerminalReference addError() {
+            return addTerminal(getErrorTerminal());
         }
         
         
@@ -471,13 +437,13 @@ public class Grammar {
 
 
         /**
-         * Does this rule contain an {@link ErrorReference}?
+         * Does this rule contain a reference to the error terminal?
          * 
          * @return a boolean indicating if this is an error production
          */
         public boolean isErrorRule() {
             for (Reference reference: items) {
-                if (reference instanceof ErrorReference) {
+                if (reference.getItem() == getErrorTerminal()) {
                     return true;
                 }
             }
@@ -515,13 +481,13 @@ public class Grammar {
     private Map<String, Terminal> terminals;
     private Map<String, Variable> variables;
     private Variable              startVariable;
-            Error                 errorInstance;
+    private Terminal              errorTerminal;
     
     public Grammar() {
         this.terminals     = new TreeMap<String, Terminal>();
         this.variables     = new TreeMap<String, Variable>();
         this.startVariable = null;
-        this.errorInstance = new Error();
+        this.errorTerminal = addTerminal("@error");
     }
     
     
@@ -645,6 +611,10 @@ public class Grammar {
         this.startVariable = startVariable;
     }
     
+    public Terminal getErrorTerminal() {
+        return errorTerminal;
+    }
+    
     
     /**
      * Reads a grammar from the XML in an input stream. The XML format is
@@ -655,62 +625,22 @@ public class Grammar {
      * 
      * @return a new grammar
      * 
-     * @throws SAXException  if there's an error in the XML
-     * @throws IOException   if there's an error reading from the input stream
+     * @throws InvalidGrammarException
+     *             if the XML is not well-formed, or the grammar is invalid
+     * @throws IOException
+     *             if there's an error reading from the input stream
      */
-    public static Grammar fromXML(InputStream inputStream) throws SAXException, IOException {
-        // Loads the XML via DOM so we can check it against the schema, then
-        // converts the DOM to JDOM.
-        org.w3c.dom.Document domDocument  = getDocumentBuilder().parse(inputStream);
-        DOMBuilder           domBuilder   = new DOMBuilder(); 
-        Document             jdomDocument = domBuilder.build(domDocument);
-        
-        return fromValidatedXML(jdomDocument);
-    }
-
-    
-    private static DocumentBuilder documentBuilder;
-    private static DocumentBuilder getDocumentBuilder() {
-        if (documentBuilder == null) {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        
-            factory.setCoalescing    (true);
-            factory.setNamespaceAware(true);
-//            factory.setSchema        (getSchema());
-            
-            try {
-                documentBuilder = factory.newDocumentBuilder();
-            }
-            catch (ParserConfigurationException exception) {
-                Debug.logError(exception);
-                throw new RuntimeException(exception);
-            }
+    public static Grammar fromXML(InputStream inputStream) throws InvalidGrammarException, IOException {
+        try {
+            return fromXML(new SAXBuilder().build(inputStream));
         }
-        
-        return documentBuilder;
-    }
-
-    private static Schema schema;
-    private static Schema getSchema() {
-        if (schema == null) {
-            SchemaFactory factory      = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            InputStream   schemaStream = Grammar.class.getResourceAsStream("grammar.xsd"); 
-            
-            try {
-                schema = factory.newSchema(new StreamSource(schemaStream));
-            }
-            catch (SAXException exception) {
-                Debug.logError(exception, "Error reading grammar.xsd.");
-                throw new RuntimeException(exception);
-            }
+        catch (JDOMException exception) {
+            throw new InvalidGrammarException(exception);
         }
-        
-        return schema;
     }
-    
     
     @SuppressWarnings("unchecked")
-    private static Grammar fromValidatedXML(Document xmlGrammar) throws SAXException {
+    public static Grammar fromXML(Document xmlGrammar) throws InvalidGrammarException {
         try {
             Grammar grammar = new Grammar();
             
@@ -721,7 +651,7 @@ public class Grammar {
                 int maximum = Integer.parseInt(xmlVariable.getAttributeValue("maximum"));
     
                 if (minimum > maximum) {
-                    throw new SAXException(String.format(
+                    throw new InvalidGrammarException(String.format(
                         "Variable \"%s\": <repeat> minimum (%d) greater than maximum (%d).",
                                 
                         xmlVariable.getAttributeValue("name"),
@@ -758,32 +688,43 @@ public class Grammar {
                 Variable variable   = grammar.variables().get(name);
     
                 for (Element xmlRule: (List<Element>) xmlVariable.getChildren("rule")) {
-                    addItems(grammar, variable.addRule(), xmlRule.getChildren());
+                    Rule rule = variable.addRule();
+                    
+                    addItems(grammar, rule, xmlRule.getChildren());
+
+                    rule.setAssociativity(getAssociativity(xmlRule));
                 }
                 
-                for (Element xmlGroups: (List<Element>) xmlVariable.getChildren("orderedByPrecedence")) {
+                for (Element xmlGroups: (List<Element>) xmlVariable.getChildren("ordered-by-precedence")) {
                     int precedenceLevel = 0;
     
-                    for (Element xmlGroup: (List<Element>) xmlGroups.getChildren("group")) {
-                        // Determine the group's associativity.
-                        String        xmlAssociativity = xmlGroup.getAttributeValue("associativity");
-                        Associativity associativity    = Associativity.NONE;
-    
-                        if (xmlAssociativity != null) {
-                            associativity = Associativity.valueOf(xmlAssociativity.toUpperCase());
+                    for (Element xmlGroupOrRule: (List<Element>) xmlGroups.getChildren()) {
+                        if ("group".equals(xmlGroupOrRule.getName())) {
+                            // Assign each rule in the group the same precedence and associativity.
+                            for (Element xmlRule: (List<Element>) xmlGroupOrRule.getChildren("rule")) {
+                                Rule rule = variable.addRule();
+        
+                                rule.setPrecedenceSet  (precedenceSet);
+                                rule.setPrecedenceLevel(precedenceLevel);
+                                rule.setAssociativity  (getAssociativity(xmlRule));
+        
+                                addItems(grammar, rule, xmlRule.getChildren());
+                            }
                         }
-    
-                        // Assign each rule in the group the same precedence and associativity.
-                        for (Element xmlRule: (List<Element>) xmlGroup.getChildren("rule")) {
-                            Rule rule = variable.addRule();
+                        else if ("rule".equals(xmlGroupOrRule.getName())) {
+                            Element xmlRule = xmlGroupOrRule;
+                            Rule    rule    = variable.addRule();
     
                             rule.setPrecedenceSet  (precedenceSet);
                             rule.setPrecedenceLevel(precedenceLevel);
-                            rule.setAssociativity  (associativity);
+                            rule.setAssociativity  (getAssociativity(xmlRule));
     
                             addItems(grammar, rule, xmlRule.getChildren());
                         }
-    
+                        else {
+                            throw new InvalidGrammarException("<" + xmlGroupOrRule.getName() + "> invalid inside <ordered-by-precedence>.");
+                        }
+                        
                         ++precedenceLevel;
                     }
     
@@ -798,10 +739,20 @@ public class Grammar {
             Debug.logError(exception);
             
             // We shouldn't have any Jaxen problems, but since we did, convert
-            // the exception into a SAXException so we can get out of here
-            // without adding JaxenException to the @throws list.
-            throw new SAXException(exception);
+            // the exception into one we're allowed to throw.
+            throw new InvalidGrammarException(exception);
         }
+    }
+    
+    private static Associativity getAssociativity(Element xmlRule) throws JaxenException {
+        Attribute     xmlAssociativity = (Attribute) new JDOMXPath("@associativity|../@associativity").selectSingleNode(xmlRule);
+        Associativity associativity    = Associativity.NONE;
+        
+        if (xmlAssociativity != null) {
+            associativity = Associativity.valueOf(xmlAssociativity.getValue().toUpperCase());
+        }
+        
+        return associativity;
     }
     
     @SuppressWarnings("unchecked")
@@ -931,55 +882,51 @@ public class Grammar {
     }
     
     public static void main(String[] arguments) {
-        String grammarXml =
-            "<grammar>"
-          + "  <terminal name='+'/>"                    + "\n"
-          + "  <terminal name='-'/>"                    + "\n"
-          + "  <terminal name='*'/>"                    + "\n"
-          + "  <terminal name='/'/>"                    + "\n"
-          + "  <terminal name='identifier'/>"           + "\n"
-          + "  "                                        + "\n"
-          + "  <variable name='expression'>"            + "\n"
-          + "    <orderedByPrecedence>"                 + "\n"
-          + "      <group associativity='left'>"        + "\n"
-          + "        <rule>"                            + "\n"
-          + "          <variable>expression</variable>" + "\n"
-          + "          <choice>"                        + "\n"
-          + "            <terminal>+</terminal>"        + "\n"
-          + "            <terminal>-</terminal>"        + "\n"
-          + "          </choice>"                       + "\n"
-          + "          <variable>expression</variable>" + "\n"
-          + "        </rule>"                           + "\n"
-          + "      </group>"                            + "\n"
-          + "      "                                    + "\n"
-          + "      <group associativity='left'>"        + "\n"
-          + "        <rule>"                            + "\n"
-          + "          <variable>expression</variable>" + "\n"
-          + "          <choice>"                        + "\n"
-          + "            <terminal>*</terminal>"        + "\n"
-          + "            <terminal>/</terminal>"        + "\n"
-          + "          </choice>"                       + "\n"
-          + "          <variable>expression</variable>" + "\n"
-          + "        </rule>"                           + "\n"
-          + "      </group>"                            + "\n"
-          + "    </orderedByPrecedence>"                + "\n"
-          + "    "                                      + "\n"
-          + "    <rule>"                                + "\n"
-          + "      <optional>"                          + "\n"
-          + "        <choice>"                          + "\n"
-          + "          <terminal>+</terminal>"          + "\n"
-          + "          <terminal>-</terminal>"          + "\n"
-          + "        </choice>"                         + "\n"
-          + "      </optional>"                         + "\n"
-          + "      <terminal>identifier</terminal>"     + "\n"
-          + "    </rule>"                               + "\n"
-          + "  </variable>"                             + "\n"
+        String grammarXML =
+            "<grammar language='Kang'>"               + "\n"
+          + "  <terminal name='+'/>"                  + "\n"
+          + "  <terminal name='-'/>"                  + "\n"
+          + "  <terminal name='*'/>"                  + "\n"
+          + "  <terminal name='/'/>"                  + "\n"
+          + "  <terminal name='identifier'/>"         + "\n"
+          + "  "                                      + "\n"
+          + "  <variable name='expression'>"          + "\n"
+          + "    <ordered-by-precedence>"             + "\n"
+          + "      <rule associativity='left'>"       + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "        <choice>"                        + "\n"
+          + "          <terminal>+</terminal>"        + "\n"
+          + "          <terminal>-</terminal>"        + "\n"
+          + "        </choice>"                       + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "      </rule>"                           + "\n"
+          + "      "                                  + "\n"
+          + "      <rule associativity='left'>"       + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "        <choice>"                        + "\n"
+          + "          <terminal>*</terminal>"        + "\n"
+          + "          <terminal>/</terminal>"        + "\n"
+          + "        </choice>"                       + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "      </rule>"                           + "\n"
+          + "    </ordered-by-precedence>"            + "\n"
+          + "    "                                    + "\n"
+          + "    <rule>"                              + "\n"
+          + "      <optional>"                        + "\n"
+          + "        <choice>"                        + "\n"
+          + "          <terminal>+</terminal>"        + "\n"
+          + "          <terminal>-</terminal>"        + "\n"
+          + "        </choice>"                       + "\n"
+          + "      </optional>"                       + "\n"
+          + "      <terminal>identifier</terminal>"   + "\n"
+          + "    </rule>"                             + "\n"
+          + "  </variable>"                           + "\n"
           + "</grammar>";
         
         try {
-            Grammar.fromXML(new ByteArrayInputStream(grammarXml.getBytes())).print(System.out);
+            Grammar.fromXML(new ByteArrayInputStream(grammarXML.getBytes())).print(System.out);
         }
-        catch (SAXException exception) {
+        catch (InvalidGrammarException exception) {
             Debug.logError(exception);
         }
         catch (IOException exception) {
