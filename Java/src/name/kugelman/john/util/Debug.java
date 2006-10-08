@@ -66,10 +66,13 @@ public abstract class Debug {
     static {
         packageLevels = new HashMap<String, Level>();
         
-        if (System.getProperty("log.level") != null) {
-            // Always show warnings and errors from this class.
-            packageLevels.put(Debug.class.getCanonicalName(), Level.WARNING);
-            
+        // Always show warnings and errors from this class.
+        packageLevels.put(Debug.class.getCanonicalName(), Level.WARNING);
+
+        if (System.getProperty("log.level") == null) {
+            packageLevels.put("", Level.WARNING);
+        }
+        else {
             // Break up the string into package.name=L1,L2 strings.
             StringTokenizer tokenizer = new StringTokenizer(System.getProperty("log.level"), ";", false);
             
@@ -96,7 +99,10 @@ public abstract class Debug {
         
         String location = System.getProperty("log.location");
        
-        if (location != null) {
+        if (location == null) {
+            locationLevel = Level.VERBOSE;
+        }
+        else {
             try {
                 locationLevel = Level.valueOf(location);
             }
