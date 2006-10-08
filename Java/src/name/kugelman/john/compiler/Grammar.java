@@ -1,7 +1,23 @@
 package name.kugelman.john.compiler;
 
+import java.io.*;
 import java.util.*;
 import java.util.regex.*;
+
+import javax.xml.*;
+import javax.xml.parsers.*;
+import javax.xml.transform.dom.*;
+import javax.xml.transform.stream.*;
+import javax.xml.validation.*;
+
+import name.kugelman.john.util.*;
+
+import org.jaxen.*;
+import org.jaxen.dom.*;
+import org.jaxen.jdom.*;
+import org.jdom.*;
+import org.jdom.input.*;
+import org.xml.sax.*;
 
 /**
  * Reads an XML file containing the specification for a context-free grammar and
@@ -502,18 +518,26 @@ public class Grammar {
     }
     
     
-    private List<Terminal> terminals;
-    private List<Variable> variables;
-    private Variable       startVariable;
-            Error          errorInstance;
+    private Map<String, Terminal> terminals;
+    private Map<String, Variable> variables;
+    private Variable              startVariable;
+            Error                 errorInstance;
     
     public Grammar() {
-        this.terminals     = new ArrayList<Terminal>();
-        this.variables     = new ArrayList<Variable>();
+        this.terminals     = new TreeMap<String, Terminal>();
+        this.variables     = new TreeMap<String, Variable>();
         this.startVariable = null;
         this.errorInstance = new Error();
     }
     
+    
+    public Map<String, Terminal> terminals() {
+        return terminals;
+    }
+    
+    public Map<String, Variable> variables() {
+        return variables;
+    }
     
     /**
      * Adds a new terminal to this grammar.
@@ -542,7 +566,7 @@ public class Grammar {
     public Terminal addTerminal(String tokenClass, boolean isDiscardable) {
         Terminal terminal = new Terminal(tokenClass, isDiscardable);
         
-        terminals.add(terminal);
+        terminals.put(tokenClass, terminal);
         
         return terminal;
     }
@@ -552,25 +576,48 @@ public class Grammar {
      * 
      * @param name  the variable's name
      * 
-     * @return  the new variable
+     * @return the new variable
      */
     public Variable addVariable(String name) {
-        return addVariable(name, null);
+        Variable variable = new Variable(name, null);
+        
+        variables.put(name, variable);
+        
+        return variable;
     }
     
     /**
      * Adds a new auxiliary variable to this grammar.
      * 
-     * @param name        the variable's name
-     * @param parentRule  the rule for which the auxiliary variable is being
-     *                    created
-     * 
-     * @return  the new variable
+     * @param parentRule
+     *            the rule for which the auxiliary variable is being created
+     *
+     * @return the new variable
      */
-    public Variable addVariable(String name, Rule parentRule) {
+    public Variable newAuxiliaryVariable(Rule parentRule) {
+        return newAuxiliaryVariable(parentRule, 0);
+    }
+    
+    /**
+     * Adds a new auxiliary variable to this grammar. For convenience the
+     * specified number of blank rules are added.
+     * 
+     * @param parentRule
+     *            the rule for which the auxiliary variable is being created
+     * @param numRules
+     *            the number of rules to create for the auxiliary variable
+     * 
+     * @return the new variable
+     */
+    public Variable newAuxiliaryVariable(Rule parentRule, int numRules) {
+        String   name     = parentRule.getVariable().getName() + "@" + variables.size();
         Variable variable = new Variable(name, parentRule);
         
-        variables.add(variable);
+        for (int i = 0; i < numRules; ++i) {
+            variable.addRule();
+        }
+        
+        variables.put(name, variable);
         
         return variable;
     }
@@ -602,5 +649,245 @@ public class Grammar {
      */
     public void setStartVariable(Variable startVariable) {
         this.startVariable = startVariable;
+    }
+    
+    
+    /**
+     * Reads a grammar from the XML in an input stream. The XML format is
+     * described in <tt>grammar.xsd</tt>.
+     * 
+     * @param inputStream
+     *            an input stream to read the XML from
+     * 
+     * @return a new grammar
+     * 
+     * @throws SAXException  if there's an error in the XML
+     * @throws IOException   if there's an error reading from the input stream
+     */
+    public static Grammar fromXML(InputStream inputStream) throws SAXException, IOException {
+        // Loads the XML via DOM so we can check it against the schema, then
+        // converts the DOM to JDOM.
+        org.w3c.dom.Document domDocument  = getDocumentBuilder().parse(inputStream);
+        DOMBuilder           domBuilder   = new DOMBuilder(); 
+        Document             jdomDocument = domBuilder.build(domDocument);
+        
+        return fromValidatedXML(jdomDocument);
+    }
+
+    
+    private static DocumentBuilder documentBuilder;
+    private static DocumentBuilder getDocumentBuilder() {
+        if (documentBuilder == null) {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        
+            factory.setCoalescing    (true);
+            factory.setNamespaceAware(true);
+            factory.setSchema        (getSchema());
+            
+            try {
+                documentBuilder = factory.newDocumentBuilder();
+            }
+            catch (ParserConfigurationException exception) {
+                Debug.logError(exception);
+                throw new RuntimeException(exception);
+            }
+        }
+        
+        return documentBuilder;
+    }
+
+    private static Schema schema;
+    private static Schema getSchema() {
+        if (schema == null) {
+            SchemaFactory factory      = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+            InputStream   schemaStream = Grammar.class.getResourceAsStream("grammar.xsd"); 
+            
+            try {
+                schema = factory.newSchema(new StreamSource(schemaStream));
+            }
+            catch (SAXException exception) {
+                Debug.logError(exception, "Error reading grammar.xsd.");
+                throw new RuntimeException(exception);
+            }
+        }
+        
+        return schema;
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    private static Grammar fromValidatedXML(Document xmlGrammar) throws SAXException {
+        try {
+            Grammar grammar = new Grammar();
+            
+            // Verify that for each <repeat> element, if a maximum is specified that it is
+            // greater than the minimum.
+            for (Element xmlVariable: (List<Element>) new JDOMXPath("//repeat[@maximum]").selectNodes(xmlGrammar)) {
+                int minimum = Integer.parseInt(xmlVariable.getAttributeValue("minimum"));
+                int maximum = Integer.parseInt(xmlVariable.getAttributeValue("maximum"));
+    
+                if (minimum > maximum) {
+                    throw new SAXException(String.format(
+                        "Variable \"%s\": <repeat> minimum (%d) greater than maximum (%d).",
+                                
+                        xmlVariable.getAttributeValue("name"),
+                        minimum,
+                        maximum
+                    ));
+                }
+            }
+            
+            // Get the terminal and variable nodes from the XML file.
+            List<Element> xmlTerminals = new JDOMXPath("/grammar/terminal").selectNodes(xmlGrammar);
+            List<Element> xmlVariables = new JDOMXPath("/grammar/variable").selectNodes(xmlGrammar);
+    
+            // Read the terminals.
+            for (Element xmlTerminal: xmlTerminals) {
+                String  name    = xmlTerminal.getAttributeValue("name");
+                boolean discard = xmlTerminal.getAttributeValue("discard").equals("yes");
+    
+                grammar.addTerminal(name, discard);
+            }
+    
+            // Create all the variables before reading any rules.
+            for (Element xmlVariable: xmlVariables) {
+                grammar.addVariable(xmlVariable.getAttributeValue("name"));
+            }
+    
+            // The ID number for the current precedence set; this number is incremented
+            // after each <orderedByPrecedence> element.
+            int precedenceSet = 0;
+    
+            // Read the rules for all of the variables.
+            for (Element xmlVariable: xmlVariables) {
+                String   name       = xmlVariable.getAttributeValue("name");
+                Variable variable   = grammar.variables().get(name);
+    
+                for (Element xmlRule: (List<Element>) xmlVariable.getChildren("rule")) {
+                    addItems(grammar, variable.addRule(), xmlRule.getChildren());
+                }
+                
+                for (Element xmlGroups: (List<Element>) xmlVariable.getChildren("orderedByPrecedence")) {
+                    int precedenceLevel = 0;
+    
+                    for (Element xmlGroup: (List<Element>) xmlGroups.getChildren("group")) {
+                        // Determine the group's associativity.
+                        String        xmlAssociativity = xmlGroup.getAttributeValue("associativity");
+                        Associativity associativity    = Associativity.NONE;
+    
+                        if (xmlAssociativity != null) {
+                            associativity = Associativity.valueOf(xmlAssociativity.toUpperCase());
+                        }
+    
+                        // Assign each rule in the group the same precedence and associativity.
+                        for (Element xmlRule: (List<Element>) xmlGroup.getChildren("rule")) {
+                            Rule rule = variable.addRule();
+    
+                            rule.setPrecedenceSet  (precedenceSet);
+                            rule.setPrecedenceLevel(precedenceLevel);
+                            rule.setAssociativity  (associativity);
+    
+                            addItems(grammar, rule, xmlRule.getChildren());
+                        }
+    
+                        ++precedenceLevel;
+                    }
+    
+                    // Assign the next precedence set a different ID number.
+                    ++precedenceSet;
+                }
+            }
+            
+            return grammar;
+        }
+        catch (JaxenException exception) {
+            Debug.logError(exception);
+            throw new SAXException(exception);
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private static void addItems(Grammar grammar, Rule rule, Element xmlRule) {
+        addItems(grammar, rule, xmlRule.getChildren());
+    }
+    
+    @SuppressWarnings("unchecked")
+    private static void addItems(Grammar grammar, Rule rule, List<Element> xmlItems) {
+        for (Element xmlItem: xmlItems) {
+            if ("terminal".equals(xmlItem.getName())) {
+                Terminal terminal = grammar.terminals().get(xmlItem.getTextTrim());
+                boolean  discard  = terminal.isDiscardable();
+
+                if (xmlItem.getAttribute("discard") != null) {
+                    discard = xmlItem.getAttributeValue("discard").equals("yes");
+                }
+
+                rule.addTerminal(terminal, discard);
+            }
+            else if ("variable".equals(xmlItem.getName())) {
+                rule.addVariable(grammar.variables().get(xmlItem.getTextTrim()));
+            }
+            else if ("group".equals(xmlItem.getName())) {
+                // Let groupVariable → xmlItem.
+                Variable newVariable = grammar.newAuxiliaryVariable(rule, 1);
+                Rule     newRule     = newVariable.rules().get(0);
+                
+                addItems(grammar, newRule, xmlItem);
+            }
+            else if ("optional".equals(xmlItem.getName())) {
+                // Let optionalVariable → xmlItem | ε.
+                Variable newVariable = grammar.newAuxiliaryVariable(rule, 2);
+
+                addItems(grammar, newVariable.rules().get(0), xmlItem);
+            }
+            else if ("repeat".equals(xmlItem.getName())) {
+                int minimum = Integer.parseInt(xmlItem.getAttributeValue("minimum"));
+
+                // If maximum is unbounded.
+                if (xmlItem.getAttribute("maximum") == null) {
+                    Variable newVariable = grammar.newAuxiliaryVariable(rule, 2);
+
+                    // Create the rule "repeatVariable → repeatVariable itemsToRepeat".
+                    newVariable.rules().get(0).addVariable(newVariable);
+                    addItems(grammar, newVariable.rules().get(0), xmlItem);
+
+                    // Create the rule "repeatVariable → itemsToRepeat^minimum" (itemsToRepeat
+                    // repeated minimum times).
+                    for (int i = 0; i < minimum; ++i) {
+                        addItems(grammar, newVariable.rules().get(1), xmlItem);
+                    }
+                }
+                else {
+                    int maximum = Integer.parseInt(xmlItem.getAttributeValue("maximum"));
+
+                    // Create the rule "repeatVariable → itemsToRepeat^i" for each i between minimum
+                    // and maximum.
+                    Variable newVariable = grammar.newAuxiliaryVariable(rule, 0);
+
+                    for (int i = minimum; i <= maximum; ++i) {
+                        Rule newRule = newVariable.addRule();
+                        
+                        for (int j = 0; j < i; ++j) {
+                            addItems(grammar, newRule, xmlItem);
+                        }
+                    }
+                }
+            }
+            else if ("choice".equals(xmlItem.getName())) {
+                // Create a separate rule for each choice.
+                Variable newVariable = grammar.newAuxiliaryVariable(rule, 0);
+                
+                for (Element xmlChoice: (List<Element>) xmlItem.getChildren()) {
+                    addItems(grammar, newVariable.addRule(), Collections.singletonList(xmlChoice));
+                }
+            }
+            else if ("error".equals(xmlItem.getName())) {
+                rule.addError();
+            }
+            else {
+                Debug.logError("Unknown rule item <" + xmlItem.getName() + ">.");
+            }
+        }
+       
     }
 }
