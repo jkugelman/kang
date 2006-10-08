@@ -802,6 +802,10 @@ public class Grammar {
         }
         catch (JaxenException exception) {
             Debug.logError(exception);
+            
+            // We shouldn't have any Jaxen problems, but since we did, convert
+            // the exception into a SAXException so we can get out of here
+            // without adding JaxenException to the @throws list.
             throw new SAXException(exception);
         }
     }
