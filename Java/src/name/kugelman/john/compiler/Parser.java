@@ -174,7 +174,7 @@ public class Parser {
 
 
     /** Base class for exceptions thrown by the parser. */
-    public abstract class Exception extends java.lang.Exception {
+    public abstract class Exception extends RuntimeException {
         public Exception(String message) {
             super(message);
         }
@@ -391,10 +391,10 @@ public class Parser {
                     
                     boolean allNullable = true;
 
-                    for (Object item: rule.items()) {
+                    for (Rule.Reference item: rule.items()) {
                         // If the rule contains a terminal or a non-nullable variable then
                         // it's not nullable, so we're done.
-                        if (item instanceof Terminal || isNullable.get(item)) {
+                        if (item instanceof TerminalReference || isNullable.get(item.getItem())) {
                             allNullable = false;
                             break;
                         }
@@ -1087,5 +1087,65 @@ public class Parser {
         }
 
         return nodes;
+    }
+    
+    
+    public static void main(String[] arguments) {
+        String grammarXML =
+            "<grammar language='Kang'>"               + "\n"
+          + "  <terminal name='+'/>"                  + "\n"
+          + "  <terminal name='-'/>"                  + "\n"
+          + "  <terminal name='*'/>"                  + "\n"
+          + "  <terminal name='/'/>"                  + "\n"
+          + "  <terminal name='identifier'/>"         + "\n"
+          + "  "                                      + "\n"
+          + "  <variable name='expression'>"          + "\n"
+          + "    <ordered-by-precedence>"             + "\n"
+          + "      <rule associativity='left'>"       + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "        <choice>"                        + "\n"
+          + "          <terminal>+</terminal>"        + "\n"
+          + "          <terminal>-</terminal>"        + "\n"
+          + "        </choice>"                       + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "      </rule>"                           + "\n"
+          + "      "                                  + "\n"
+          + "      <rule associativity='left'>"       + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "        <choice>"                        + "\n"
+          + "          <terminal>*</terminal>"        + "\n"
+          + "          <terminal>/</terminal>"        + "\n"
+          + "        </choice>"                       + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "      </rule>"                           + "\n"
+          + "    </ordered-by-precedence>"            + "\n"
+          + "    "                                    + "\n"
+          + "    <rule>"                              + "\n"
+          + "      <optional>"                        + "\n"
+          + "        <choice>"                        + "\n"
+          + "          <terminal>+</terminal>"        + "\n"
+          + "          <terminal>-</terminal>"        + "\n"
+          + "        </choice>"                       + "\n"
+          + "      </optional>"                       + "\n"
+          + "      <terminal>identifier</terminal>"   + "\n"
+          + "    </rule>"                             + "\n"
+          + "  </variable>"                           + "\n"
+          + "</grammar>";
+        
+        try {
+            Grammar grammar = Grammar.fromXML(new ByteArrayInputStream(grammarXML.getBytes()));
+            Parser  parser  = new Parser(grammar);
+            
+            grammar.print(System.out);
+        }
+        catch (InvalidGrammarException exception) {
+            Debug.logError(exception);
+        }
+        catch (IOException exception) {
+            Debug.logError(exception);
+        }
+        catch (Exception exception) {
+            Debug.logError(exception);
+        }
     }
 }

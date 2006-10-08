@@ -584,22 +584,12 @@ public class Grammar {
     
 
     /**
-     * Gets the start symbol. This is the root variable in the grammar. If it
-     * has not been explicitly set then the first variable in the grammar is the
-     * start symbol.
+     * Gets the start symbol. This is the root variable in the grammar.
      * 
      * @return the start symbol
      */
     public Variable getStartVariable() {
-        if (startVariable != null) {
-            return startVariable;
-        }
-        else if (!variables.isEmpty()) {
-            return variables.get(0);
-        }
-        else {
-            return null;
-        }
+        return startVariable;
     }
     
     /**
@@ -675,7 +665,11 @@ public class Grammar {
     
             // Create all the variables before reading any rules.
             for (Element xmlVariable: xmlVariables) {
-                grammar.addVariable(xmlVariable.getAttributeValue("name"));
+                Variable variable = grammar.addVariable(xmlVariable.getAttributeValue("name"));
+                
+                if (grammar.variables().size() == 1) {
+                    grammar.setStartVariable(variable);
+                }
             }
     
             // The ID number for the current precedence set; this number is incremented
@@ -878,59 +872,6 @@ public class Grammar {
             }
             
             out.println();
-        }
-    }
-    
-    public static void main(String[] arguments) {
-        String grammarXML =
-            "<grammar language='Kang'>"               + "\n"
-          + "  <terminal name='+'/>"                  + "\n"
-          + "  <terminal name='-'/>"                  + "\n"
-          + "  <terminal name='*'/>"                  + "\n"
-          + "  <terminal name='/'/>"                  + "\n"
-          + "  <terminal name='identifier'/>"         + "\n"
-          + "  "                                      + "\n"
-          + "  <variable name='expression'>"          + "\n"
-          + "    <ordered-by-precedence>"             + "\n"
-          + "      <rule associativity='left'>"       + "\n"
-          + "        <variable>expression</variable>" + "\n"
-          + "        <choice>"                        + "\n"
-          + "          <terminal>+</terminal>"        + "\n"
-          + "          <terminal>-</terminal>"        + "\n"
-          + "        </choice>"                       + "\n"
-          + "        <variable>expression</variable>" + "\n"
-          + "      </rule>"                           + "\n"
-          + "      "                                  + "\n"
-          + "      <rule associativity='left'>"       + "\n"
-          + "        <variable>expression</variable>" + "\n"
-          + "        <choice>"                        + "\n"
-          + "          <terminal>*</terminal>"        + "\n"
-          + "          <terminal>/</terminal>"        + "\n"
-          + "        </choice>"                       + "\n"
-          + "        <variable>expression</variable>" + "\n"
-          + "      </rule>"                           + "\n"
-          + "    </ordered-by-precedence>"            + "\n"
-          + "    "                                    + "\n"
-          + "    <rule>"                              + "\n"
-          + "      <optional>"                        + "\n"
-          + "        <choice>"                        + "\n"
-          + "          <terminal>+</terminal>"        + "\n"
-          + "          <terminal>-</terminal>"        + "\n"
-          + "        </choice>"                       + "\n"
-          + "      </optional>"                       + "\n"
-          + "      <terminal>identifier</terminal>"   + "\n"
-          + "    </rule>"                             + "\n"
-          + "  </variable>"                           + "\n"
-          + "</grammar>";
-        
-        try {
-            Grammar.fromXML(new ByteArrayInputStream(grammarXML.getBytes())).print(System.out);
-        }
-        catch (InvalidGrammarException exception) {
-            Debug.logError(exception);
-        }
-        catch (IOException exception) {
-            Debug.logError(exception);
         }
     }
 }
