@@ -1086,7 +1086,7 @@ public class Parser {
 
     /**
      * Replaces any collapsible {@link ParseTree.Variable}s in
-     * <code>nodes</code> with their child nodes and removes any discardable
+     * <code>nodes</code> with their child nodes and removes any non-preserved
      * {@link ParseTree.Terminal}s.
      * 
      * @param rule   the rule being reduced by
