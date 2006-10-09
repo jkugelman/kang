@@ -125,6 +125,7 @@ public abstract class Tokenizer {
         }
         
         
+        @Override
         public String toString() {
             return String.format("%s(%d,%d)", file, line + 1, column + 1);
         }
