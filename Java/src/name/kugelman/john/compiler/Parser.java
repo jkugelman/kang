@@ -970,7 +970,7 @@ public class Parser {
                     // If the tokenizer ran out of tokens, and end is an invalid token, then there
                     // are no more tokens to discard and no more hope of recovering from this error.
                     // We must admit defeat.
-                    if (token == null && !actionTable.get(stateStack.peek()).containsKey(grammar.terminals().get("@end"))) {
+                    if (token == null && !actionTable.get(stateStack.peek()).containsKey("@end")) {
                         Debug.logVerbose("Error recovery failed.");
                         
                         return null;
@@ -981,7 +981,7 @@ public class Parser {
                     int initialErrorState = state;
                     
                     // Find the topmost state on the stack that will accept an error token.
-                    while (!actionTable.get(state).containsKey(grammar.getErrorTerminal()))
+                    while (!actionTable.get(state).containsKey("@error"))
                     {
                         // Couldn't find a state on the stack with an error production. We encountered
                         // an error we couldn't recover from, so we can only return null indicating
