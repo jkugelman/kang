@@ -31,21 +31,21 @@ public class Grammar {
      */
     public class Terminal extends Item {
         private Object  tokenClass;
-        private boolean isDiscardable;
+        private boolean isPreserved;
 
         /**
          * Creates a new terminal.
          * 
          * @param tokenClass
          *            the token class associated with this terminal
-         * @param isDiscardable
-         *            if <code>true</code>, all instances of this terminal
+         * @param isPreserved
+         *            if <code>false</code>, all instances of this terminal
          *            are discarded after being parsed and are not added to the
          *            parse tree
          */
-        Terminal(Object tokenClass, boolean isDiscardable) {
-            this.tokenClass    = tokenClass;
-            this.isDiscardable = isDiscardable;
+        Terminal(Object tokenClass, boolean isPreserved) {
+            this.tokenClass  = tokenClass;
+            this.isPreserved = isPreserved;
         }
         
         /**
@@ -58,14 +58,15 @@ public class Grammar {
         }
         
         /**
-         * If <code>true</code>, all instances of this terminal are discarded
+         * If <code>false</code>, all instances of this terminal are discarded
          * after being parsed and are not added to the parse tree. This property
          * can be overridden by individual {@link Rule.TerminalReference}s.
          * 
-         * @return whether the token is discardable or not
+         * @return whether the token should be preserved in the {@link
+         *         ParseTree} or discarded
          */
-        public boolean isDiscardable() {
-            return this.isDiscardable;
+        public boolean isPreserved() {
+            return this.isPreserved;
         }
         
         
@@ -521,15 +522,15 @@ public class Grammar {
      * 
      * @param tokenClass
      *            the token class associated with the terminal
-     * @param isDiscardable
-     *            if <code>true</code>, all instances of the terminal are
+     * @param isPreserved
+     *            if <code>false</code>, all instances of the terminal are
      *            discarded after being parsed and are not added to the parse
      *            tree
      *            
      * @return the new terminal
      */
-    public Terminal addTerminal(String tokenClass, boolean isDiscardable) {
-        Terminal terminal = new Terminal(tokenClass, isDiscardable);
+    public Terminal addTerminal(String tokenClass, boolean isPreserved) {
+        Terminal terminal = new Terminal(tokenClass, isPreserved);
         
         terminals.put(tokenClass, terminal);
         
@@ -662,10 +663,10 @@ public class Grammar {
     
             // Read the terminals.
             for (Element xmlTerminal: xmlTerminals) {
-                String  name    = xmlTerminal.getAttributeValue("name");
-                boolean discard = "yes".equals(xmlTerminal.getAttributeValue("discard"));
+                String  name     = xmlTerminal.getAttributeValue("name");
+                boolean preserve = !"no".equals(xmlTerminal.getAttributeValue("preserve"));
     
-                grammar.addTerminal(name, discard);
+                grammar.addTerminal(name, preserve);
             }
     
             // Create all the variables before reading any rules.
@@ -764,13 +765,13 @@ public class Grammar {
         for (Element xmlItem: xmlItems) {
             if ("terminal".equals(xmlItem.getName())) {
                 Terminal terminal = grammar.terminals().get(xmlItem.getTextTrim());
-                boolean  discard  = terminal.isDiscardable();
+                boolean  preserve = terminal.isPreserved();
 
-                if (xmlItem.getAttribute("discard") != null) {
-                    discard = xmlItem.getAttributeValue("discard").equals("yes");
+                if (xmlItem.getAttribute("preserve") != null) {
+                    preserve = !"no".equals(xmlItem.getAttributeValue("preserve"));
                 }
 
-                rule.addTerminal(terminal, !discard);
+                rule.addTerminal(terminal, preserve);
             }
             else if ("variable".equals(xmlItem.getName())) {
                 rule.addVariable(grammar.variables().get(xmlItem.getTextTrim()));
