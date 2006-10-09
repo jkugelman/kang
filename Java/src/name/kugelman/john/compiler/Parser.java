@@ -145,6 +145,7 @@ public class Parser {
             return builder.toString();
         }
 
+        @Override
         public boolean equals(Object object) {
             if (!(object instanceof ParseItem)) {
                 return false;
@@ -157,7 +158,8 @@ public class Parser {
                 && this.lookahead.equals(item.lookahead);
         }
 
-        public int getHashCode() {
+        @Override
+        public int hashCode() {
             return rule.hashCode() ^ position ^ lookahead.hashCode();
         }
     }
@@ -197,7 +199,7 @@ public class Parser {
         public final State state;
 
         ShiftReduceException(Rule shiftRule, Rule reduceRule, State state) {
-            super("Shift/reduce conflict encountered.");
+            super("Unable to resolve shift/reduce conflict.");
             
             this.shiftRule  = shiftRule;
             this.reduceRule = reduceRule;
@@ -207,7 +209,7 @@ public class Parser {
         /** Prints the conflicting rules and the state of the parser. */
         @Override
         public void printDetails(PrintStream stream) {
-            stream.println("Shift/reduce conflict encountered.");
+            stream.println("Unable to resolve shift/reduce conflict.");
             stream.println();
             stream.printf ("Shift rule:  %s%n", shiftRule);
             stream.printf ("Reduce rule: %s%n", reduceRule);
@@ -233,7 +235,7 @@ public class Parser {
         public final State state;
 
         public ReduceReduceException(Rule newRule, Rule oldRule, State state) {
-            super("Reduce/reduce conflict encountered.");
+            super("Unable to resolve reduce/reduce conflict.");
             
             this.newRule = newRule;
             this.oldRule = oldRule;
@@ -244,7 +246,7 @@ public class Parser {
         /** Prints the conflicting rules and the state of the parser. */
         @Override
         public void printDetails(PrintStream stream) {
-            stream.println("Reduce/reduce conflict encountered.");
+            stream.println("Unable to resolve reduce/reduce conflict.");
             stream.println();
             stream.printf ("Rule #1: %s%n", oldRule);
             stream.printf ("Rule #2: %s%n", newRule);
@@ -297,20 +299,20 @@ public class Parser {
          * The action table for the parser; undefined entries indicate an error.
          * Indexed by state number and token class.
          */
-        public List<Map<Terminal, Action>> actionTable;
+        public List<Map<Object, Action>> actionTable;
 
         /**
          * The goto table for the parser; undefined entries indicate an error.
          * Indexed by state number and variable name.
          */
-        public List<Map<Variable, Integer>> gotoTable;
+        public List<Map<String, Integer>> gotoTable;
 
         /**
          * Parallel to <code>actionTable</code>, gives the {@link Rule} that
          * produced each action, so that we know which two rules are in conflict
          * when we encounter any parsing conflicts.
          */
-        private List<Map<Terminal, Rule>> reasonTable;
+        private List<Map<Object, Rule>> reasonTable;
                 
         
         /**
@@ -512,7 +514,10 @@ public class Parser {
             Terminal  endSymbol   = grammar.terminals().get("@end");
             ParseItem initialItem = new ParseItem(startSymbol.rules().get(0), 0, endSymbol);
             
-            states = new HashSet<State>();
+            // Use a LinkedHashSet so the order the states are added is
+            // preserved. We need the initial state to be the first state in the
+            // set when iterated.
+            states = new LinkedHashSet<State>();
 
             // Start with one initial state: closure({start → ·S, end})
             states.add(closure(Collections.singleton(initialItem)));
@@ -617,15 +622,15 @@ public class Parser {
         private void constructParsingTables()
             throws ShiftReduceException, ReduceReduceException
         {
-            stateTable  = new ArrayList<State>                 (states);
-            actionTable = new ArrayList<Map<Terminal, Action>> (states.size());
-            gotoTable   = new ArrayList<Map<Variable, Integer>>(states.size());
-            reasonTable = new ArrayList<Map<Terminal, Rule>>   (states.size());
+            stateTable  = new ArrayList<State>               (states);
+            actionTable = new ArrayList<Map<Object, Action>> (states.size());
+            gotoTable   = new ArrayList<Map<String, Integer>>(states.size());
+            reasonTable = new ArrayList<Map<Object, Rule>>   (states.size());
 
             for (int i = 0; i < stateTable.size(); ++i) {
-                actionTable.add(new HashMap<Terminal, Action>());
-                gotoTable  .add(new HashMap<Variable, Integer>());
-                reasonTable.add(new HashMap<Terminal, Rule>  ());
+                actionTable.add(new HashMap<Object, Action>());
+                gotoTable  .add(new HashMap<String, Integer>());
+                reasonTable.add(new HashMap<Object, Rule>  ());
 
                 State state = stateTable.get(i);
 
@@ -645,7 +650,7 @@ public class Parser {
                     }
                     else {
                         if (parseItem.rule.getVariable() == grammar.getStartVariable()) {
-                            actionTable.get(i).put(grammar.terminals().get("@end"), Action.Accept());
+                            actionTable.get(i).put("@end", Action.Accept());
                         }
                         else {
                             addReduceAction(i, parseItem.lookahead, parseItem.rule);
@@ -657,7 +662,7 @@ public class Parser {
                         int   stateNumber = stateTable.indexOf(gotoState);
                         
                         if (stateNumber >= 0) {
-                            gotoTable.get(i).put(variable, stateNumber);
+                            gotoTable.get(i).put(variable.getName(), stateNumber);
                         }
                     }
                 }
@@ -692,8 +697,8 @@ public class Parser {
                 }
             }
 
-            actionTable.get(state).put(terminal, Action.shift(newState));
-            reasonTable.get(state).put(terminal, reason);
+            actionTable.get(state).put(terminal.getTokenClass(), Action.shift(newState));
+            reasonTable.get(state).put(terminal.getTokenClass(), reason);
         }
 
         /**
@@ -746,8 +751,8 @@ public class Parser {
                 }
             }
 
-            actionTable.get(state).put(terminal, Action.Reduce(rule));
-            reasonTable.get(state).put(terminal, rule);
+            actionTable.get(state).put(terminal.getTokenClass(), Action.Reduce(rule));
+            reasonTable.get(state).put(terminal.getTokenClass(), rule);
         }
 
         /**
@@ -790,6 +795,9 @@ public class Parser {
         /**
          * Tries to resolve a reduce/reduce conflict by deciding which rule to
          * reduce by.
+         * <p>
+         * This parser has no mechanism to resolve reduce/reduce conflicts and
+         * will always throw an exception.
          * 
          * @param newRule  the new rule
          * @param oldRule  the existing rule
@@ -845,13 +853,13 @@ public class Parser {
      * The action table for the parser; undefined entries indicate an error.
      * Indexed by state number and token class.
      */
-    private List<Map<Terminal, Action>> actionTable;
+    private List<Map<Object, Action>> actionTable;
     
     /**
      * The goto table for the parser; undefined entries indicate an error.
      * Indexed by state number and variable name.
      */
-    private List<Map<Variable, Integer>> gotoTable;
+    private List<Map<String, Integer>> gotoTable;
 
     /**
      * Constructs a parser that can parse the language specified by the given
@@ -921,11 +929,11 @@ public class Parser {
         stateStack.push(0);
         
         for (;;) {
-            Terminal terminal = (token != null)
-                ? grammar.terminals().get(token.getTokenClass())
-                : grammar.terminals().get("@end");
+            Object tokenClass = (token != null)
+                ? token.getTokenClass()
+                : "@end";
             
-            if (terminal == null) {
+            if (tokenClass == null) {
                 throw new UnknownTokenException(token);
             }
 
@@ -934,16 +942,18 @@ public class Parser {
             // If we're in error mode but haven't yet shifted the @error token, pretend that
             // @error is the current token.
             if (errorMode && !tokenizer.isTransactionInProgress()) {
-                terminal = grammar.getErrorTerminal();
+                tokenClass = "@error";
             }
             
             // The current token is invalid in the current state; begin panic-mode error
             // recovery.
-            if (!actionTable.get(state).containsKey(terminal)) {
+            if (!actionTable.get(state).containsKey(tokenClass)) {
                 // When in error recovery mode, the parser attempts to perform a reduction by a
                 // rule including the error token. If no reduction can be performed, it cancels
                 // the attempted reduction, discards a token, and then tries again.
                 if (errorMode) {
+                    Debug.logVerbose("-- Discarding %s.", token);
+                    
                     // Remove the states and parse nodes for the attempted reduction that just
                     // failed.
                     while (!(parseNodes.get(parseNodes.size() - 1) instanceof ParseTree.Error)) {
@@ -961,11 +971,15 @@ public class Parser {
                     // are no more tokens to discard and no more hope of recovering from this error.
                     // We must admit defeat.
                     if (token == null && !actionTable.get(stateStack.peek()).containsKey(grammar.terminals().get("@end"))) {
+                        Debug.logMinor("-- Error recovery failed. --");
+                        
                         return null;
                     }
                 }
                 else
                 {
+                    int initialErrorState = state;
+                    
                     // Find the topmost state on the stack that will accept an error token.
                     while (!actionTable.get(state).containsKey(grammar.getErrorTerminal()))
                     {
@@ -973,6 +987,8 @@ public class Parser {
                         // an error we couldn't recover from, so we can only return null indicating
                         // complete failure.
                         if (stateStack.size() <= 1) {
+                            Debug.logMinor("-- Unable to recover from error: %s invalid in state %d. --", tokenClass, initialErrorState);
+                            
                             return null;
                         }
 
@@ -983,26 +999,28 @@ public class Parser {
                     }
 
                     errorMode = true;
+                    
+                    Debug.logMinor("-- Beginning error recovery mode: %s invalid in state %d. --", tokenClass, state);
                 }
 
                 continue;
             }
             
-            Action action = actionTable.get(state).get(terminal);
+            Action action = actionTable.get(state).get(tokenClass);
             
             switch (action.type) {
                 case SHIFT:
                     ParseTree.Node node;
 
-                    if (terminal == grammar.getErrorTerminal()) {
+                    if (tokenClass.equals("@error")) {
                         // The terminals that would have been valid at this point, minus one because the
                         // @error token will be left out.
-                        Collection<Terminal> expectedTerminals = new ArrayList<Terminal>();
+                        Collection<Object> expectedTokens = new ArrayList<Object>();
 
-                        expectedTerminals.addAll(actionTable.get(state).keySet());
-                        expectedTerminals.remove(grammar.getErrorTerminal());
+                        expectedTokens.addAll(actionTable.get(state).keySet());
+                        expectedTokens.remove("@error");
                         
-                        node = new ParseTree.Error(token, expectedTerminals);
+                        node = new ParseTree.Error(token, expectedTokens);
                     }
                     else {
                         node = new ParseTree.Terminal(token);
@@ -1011,6 +1029,8 @@ public class Parser {
                     stateStack.push((Integer) action.parameter);    // Find the new state.
                     parseNodes.add (node);                          // Add a new node to the derivation tree.
 
+                    Debug.logVerbose("SHIFT  %s. Push state %d.", node, stateStack.peek());
+                    
                     if (node instanceof ParseTree.Terminal) {
                         token = tokenizer.getToken();
                     }
@@ -1022,12 +1042,6 @@ public class Parser {
                 
                 case REDUCE:
                     Rule rule = (Rule) action.parameter;
-
-                    // End error recovery mode.
-                    if (rule.isErrorRule()) {
-                        errorMode = false;
-                        tokenizer.commitTransaction();
-                    }
 
                     for (int i = 0; i < rule.items().size(); ++i)
                         stateStack.pop();
@@ -1044,7 +1058,17 @@ public class Parser {
                     parseNodes.add(replacement);
                     
                     // Find the new state and push it onto the stack.
-                    stateStack.push(gotoTable.get(stateStack.peek()).get(rule.getVariable()));
+                    stateStack.push(gotoTable.get(stateStack.peek()).get(rule.getVariable().getName()));
+
+                    Debug.logVerbose("REDUCE to state %d by rule %s.", stateStack.peek(), rule);
+                    
+                    // End error recovery mode.
+                    if (rule.isErrorRule()) {
+                        errorMode = false;
+                        tokenizer.commitTransaction();
+                        
+                        Debug.logMinor("-- Exited error recovery mode. --");
+                    }
 
                     break;
 
@@ -1053,6 +1077,8 @@ public class Parser {
                     assert parseNodes.size() == 1;
                     assert ((ParseTree.Variable) parseNodes.get(0)).getRule().getVariable() == grammar.getStartVariable();
 
+                    Debug.logVerbose("ACCEPT.");
+                    
                     return new ParseTree((ParseTree.Variable) parseNodes.get(0));
             }
         }
@@ -1090,53 +1116,110 @@ public class Parser {
     }
     
     
+    public void print(PrintStream stream) {
+        stream.println("Action table:");
+        
+        for (int i = 0; i < actionTable.size(); ++i) {
+            stream.printf("    %d: %s%n", i, actionTable.get(i));
+        }
+        
+        stream.println();
+        stream.println("Goto table:");
+        
+        for (int i = 0; i < gotoTable.size(); ++i) {
+            stream.printf("    %d: %s%n", i, gotoTable.get(i));
+        }
+    }
+    
     public static void main(String[] arguments) {
         String grammarXML =
             "<grammar language='Kang'>"               + "\n"
-          + "  <terminal name='+'/>"                  + "\n"
-          + "  <terminal name='-'/>"                  + "\n"
-          + "  <terminal name='*'/>"                  + "\n"
-          + "  <terminal name='/'/>"                  + "\n"
+          + "  <terminal name='('/>"                  + "\n"
+          + "  <terminal name=')'/>"                  + "\n"
           + "  <terminal name='identifier'/>"         + "\n"
           + "  "                                      + "\n"
           + "  <variable name='expression'>"          + "\n"
-          + "    <ordered-by-precedence>"             + "\n"
-          + "      <rule associativity='left'>"       + "\n"
-          + "        <variable>expression</variable>" + "\n"
-          + "        <choice>"                        + "\n"
-          + "          <terminal>+</terminal>"        + "\n"
-          + "          <terminal>-</terminal>"        + "\n"
-          + "        </choice>"                       + "\n"
-          + "        <variable>expression</variable>" + "\n"
-          + "      </rule>"                           + "\n"
-          + "      "                                  + "\n"
-          + "      <rule associativity='left'>"       + "\n"
-          + "        <variable>expression</variable>" + "\n"
-          + "        <choice>"                        + "\n"
-          + "          <terminal>*</terminal>"        + "\n"
-          + "          <terminal>/</terminal>"        + "\n"
-          + "        </choice>"                       + "\n"
-          + "        <variable>expression</variable>" + "\n"
-          + "      </rule>"                           + "\n"
-          + "    </ordered-by-precedence>"            + "\n"
+          + "    <rule>"                              + "\n"
+          + "      <terminal>(</terminal>"            + "\n"
+          + "      <variable>expression</variable>"   + "\n"
+          + "      <terminal>)</terminal>"            + "\n"
+          + "    </rule>"                             + "\n"
           + "    "                                    + "\n"
           + "    <rule>"                              + "\n"
-          + "      <optional>"                        + "\n"
-          + "        <choice>"                        + "\n"
-          + "          <terminal>+</terminal>"        + "\n"
-          + "          <terminal>-</terminal>"        + "\n"
-          + "        </choice>"                       + "\n"
-          + "      </optional>"                       + "\n"
           + "      <terminal>identifier</terminal>"   + "\n"
           + "    </rule>"                             + "\n"
           + "  </variable>"                           + "\n"
           + "</grammar>";
         
         try {
-            Grammar grammar = Grammar.fromXML(new ByteArrayInputStream(grammarXML.getBytes()));
-            Parser  parser  = new Parser(grammar);
+            Grammar   grammar   = Grammar.fromXML(new ByteArrayInputStream(grammarXML.getBytes()));
+            Parser    parser    = new Parser(grammar);
+            ParseTree parseTree = parser.parse(new Tokenizer() {
+                String[] tokens = {"(", "(", "identifier", ")", ")"};
+                int      index  = 0;
+                
+                @Override
+                protected Token extractToken() {
+                    if (index >= tokens.length) {
+                        return null;
+                    }
+
+                    return new Token() {
+                        int    position = index++;
+                        String token    = tokens[position];
+                        
+                        @Override
+                        public Object getTokenClass() {
+                            return token;
+                        }
+
+                        @Override
+                        public String getLexeme() {
+                            return token;
+                        }
+
+                        @Override
+                        public Position getStart() {
+                            return new Position() {
+                                @Override
+                                public String toString() {
+                                    return "#" + (position + 1);
+                                }
+                            };
+                        }
+
+                        @Override
+                        public Position getEnd() {
+                            return new Position() {
+                                @Override
+                                public String toString() {
+                                    return "#" + (position + 1);
+                                }
+                            };
+                        }
+                    };
+                }
+
+                @Override
+                protected Position getPosition() {
+                    return new Position() {
+                        @Override
+                        public String toString() {
+                            return "#" + (index + 1);
+                        }
+                    };
+                }
+            });
             
-            grammar.print(System.out);
+            if (parseTree == null) {
+                System.err.println("Unable to parse program.");
+                System.err.println();
+                
+                parser.print(System.err);
+            }
+            else {
+                parseTree.print(System.out);
+            }
         }
         catch (InvalidGrammarException exception) {
             Debug.logError(exception);
@@ -1144,7 +1227,11 @@ public class Parser {
         catch (IOException exception) {
             Debug.logError(exception);
         }
-        catch (Exception exception) {
+        catch (Parser.Exception exception) {
+            Debug.logError(exception);
+            exception.printDetails(System.err);
+        }
+        catch (java.lang.Exception exception) {
             Debug.logError(exception);
         }
     }

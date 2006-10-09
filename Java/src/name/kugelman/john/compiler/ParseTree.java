@@ -1,5 +1,6 @@
 package name.kugelman.john.compiler;
 
+import java.io.*;
 import java.util.*;
 
 import name.kugelman.john.compiler.Tokenizer.*;
@@ -117,6 +118,7 @@ public class ParseTree {
          * Gets the position of the first character of the terminal. This is the
          * same as the start of the token.
          */
+        @Override
         public Position getStart() {
             return token.getStart();
         }
@@ -125,11 +127,13 @@ public class ParseTree {
          * Gets the position of the last character of the terminal. This is the
          * same as the end of the token.
          */
+        @Override
         public Position getEnd() {
             return token.getEnd();
         }
         
         
+        @Override
         public String toString() {
             return token.toString();
         }
@@ -179,6 +183,7 @@ public class ParseTree {
          * Gets the start position of this variable, which is the start position
          * of the first token in its parse tree.
          */
+        @Override
         public Position getStart() {
             if (children.isEmpty()) {
                 return tokenizerPosition;
@@ -191,6 +196,7 @@ public class ParseTree {
          * Gets the end position of this variable, which is the end position of
          * the last token in its parse tree.
          */
+        @Override
         public Position getEnd() {
             if (children.isEmpty()) {
                 return tokenizerPosition;
@@ -200,8 +206,9 @@ public class ParseTree {
         }
         
         
+        @Override
         public String toString() {
-            return rule.toString();
+            return rule.getVariable().toString();
         }
     }
 
@@ -209,20 +216,21 @@ public class ParseTree {
      * Represents an error in the parse tree.
      */
     public static class Error extends Node {
-        private Token                        token;
-        private Collection<Grammar.Terminal> expectedTerminals;
+        private Token              token;
+        private Collection<Object> expectedTokens;
 
         /**
          * Creates a new error node.
          * 
          * @param token
          *            the token at which the error was discovered
-         * @param expectedTerminals
-         *            the terminals that were expected at the point of the error
+         * @param expectedTokens
+         *            the token classes that were expected at the point of the
+         *            error
          */
-        public Error(Token token, Collection<Grammar.Terminal> expectedTerminals) {
-            this.token             = token;
-            this.expectedTerminals = new ArrayList<Grammar.Terminal>(expectedTerminals);
+        public Error(Token token, Collection<Object> expectedTokens) {
+            this.token          = token;
+            this.expectedTokens = new ArrayList<Object>(expectedTokens);
         }
 
         /**
@@ -239,8 +247,8 @@ public class ParseTree {
          * 
          * @return the expected terminals
          */
-        public Collection<Grammar.Terminal> getExpectedTerminals() {
-            return Collections.unmodifiableCollection(expectedTerminals);
+        public Collection<Object> getExpectedTokens() {
+            return Collections.unmodifiableCollection(expectedTokens);
         }
 
         /**
@@ -253,19 +261,23 @@ public class ParseTree {
         }
 
         
+        @Override
         public boolean hasError() {
             return true;
         }
 
+        @Override
         public Position getStart() {
             return getPosition();
         }
         
+        @Override
         public Position getEnd() {
             return getPosition();
         }
         
         
+        @Override
         public String toString() {
             return "<error>";
         }
@@ -293,5 +305,22 @@ public class ParseTree {
      */
     public Variable getRoot() {
         return root;
+    }
+    
+    
+    public void print(PrintStream stream) {
+        print(root, stream, 0);
+    }
+    
+    private void print(Node node, PrintStream stream, int depth) {
+        for (int i = 0; i < depth; ++i) {
+            stream.print("  ");
+        }
+        
+        stream.printf("%s%s%n", node, (node instanceof Variable) ? ":" : "");
+        
+        for (Node child: node.getChildren()) {
+            print(child, stream, depth + 1);
+        }
     }
 }

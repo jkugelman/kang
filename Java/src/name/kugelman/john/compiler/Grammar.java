@@ -73,6 +73,7 @@ public class Grammar {
          * Returns the terminal as a string, adding single quotes if the
          * terminal is a symbol.
          */
+        @Override
         public String toString() {
             String tokenClass = this.tokenClass.toString();
             
@@ -158,6 +159,7 @@ public class Grammar {
         /**
          * Returns this variable's name.
          */
+        @Override
         public String toString() {
             return name;
         }
@@ -222,6 +224,7 @@ public class Grammar {
                 return terminal;
             }
 
+            @Override
             public Item getItem() {
                 return terminal;
             }
@@ -265,6 +268,7 @@ public class Grammar {
                 return variable;
             }
 
+            @Override
             public Item getItem() {
                 return variable;
             }
@@ -457,6 +461,7 @@ public class Grammar {
          * 
          * @return this rule as a string
          */
+        @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
             
@@ -765,7 +770,7 @@ public class Grammar {
                     discard = xmlItem.getAttributeValue("discard").equals("yes");
                 }
 
-                rule.addTerminal(terminal, discard);
+                rule.addTerminal(terminal, !discard);
             }
             else if ("variable".equals(xmlItem.getName())) {
                 rule.addVariable(grammar.variables().get(xmlItem.getTextTrim()));

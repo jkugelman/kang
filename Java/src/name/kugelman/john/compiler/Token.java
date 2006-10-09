@@ -50,6 +50,7 @@ public abstract class Token {
     public abstract Tokenizer.Position getEnd();
     
     
+    @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
 
