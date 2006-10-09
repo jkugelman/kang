@@ -952,7 +952,7 @@ public class Parser {
                 // rule including the error token. If no reduction can be performed, it cancels
                 // the attempted reduction, discards a token, and then tries again.
                 if (errorMode) {
-                    Debug.logVerbose("-- Discarding %s.", token);
+                    Debug.logVerbose("Discarding %s.", token);
                     
                     // Remove the states and parse nodes for the attempted reduction that just
                     // failed.
@@ -971,7 +971,7 @@ public class Parser {
                     // are no more tokens to discard and no more hope of recovering from this error.
                     // We must admit defeat.
                     if (token == null && !actionTable.get(stateStack.peek()).containsKey(grammar.terminals().get("@end"))) {
-                        Debug.logMinor("-- Error recovery failed. --");
+                        Debug.logVerbose("Error recovery failed.");
                         
                         return null;
                     }
@@ -987,7 +987,7 @@ public class Parser {
                         // an error we couldn't recover from, so we can only return null indicating
                         // complete failure.
                         if (stateStack.size() <= 1) {
-                            Debug.logMinor("-- Unable to recover from error: %s invalid in state %d. --", tokenClass, initialErrorState);
+                            Debug.logVerbose("Unable to recover from error: %s invalid in state %d.", tokenClass, initialErrorState);
                             
                             return null;
                         }
@@ -1000,7 +1000,7 @@ public class Parser {
 
                     errorMode = true;
                     
-                    Debug.logMinor("-- Beginning error recovery mode: %s invalid in state %d. --", tokenClass, state);
+                    Debug.logVerbose("Beginning error recovery mode: %s invalid in state %d.", tokenClass, state);
                 }
 
                 continue;
@@ -1067,7 +1067,7 @@ public class Parser {
                         errorMode = false;
                         tokenizer.commitTransaction();
                         
-                        Debug.logMinor("-- Exited error recovery mode. --");
+                        Debug.logVerbose("Exited error recovery mode.");
                     }
 
                     break;
