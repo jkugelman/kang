@@ -1140,9 +1140,11 @@ public class Parser {
           + "  "                                      + "\n"
           + "  <variable name='expression'>"          + "\n"
           + "    <rule>"                              + "\n"
-          + "      <terminal>(</terminal>"            + "\n"
-          + "      <variable>expression</variable>"   + "\n"
-          + "      <terminal>)</terminal>"            + "\n"
+          + "      <repeat minimum='1'>"              + "\n"
+          + "        <terminal>(</terminal>"          + "\n"
+          + "        <variable>expression</variable>" + "\n"
+          + "        <terminal>)</terminal>"          + "\n"
+          + "      </repeat>"                         + "\n"
           + "    </rule>"                             + "\n"
           + "    "                                    + "\n"
           + "    <rule>"                              + "\n"
@@ -1155,7 +1157,7 @@ public class Parser {
             Grammar   grammar   = Grammar.fromXML(new ByteArrayInputStream(grammarXML.getBytes()));
             Parser    parser    = new Parser(grammar);
             ParseTree parseTree = parser.parse(new Tokenizer() {
-                String[] tokens = {"(", "(", "identifier", ")", ")"};
+                String[] tokens = {"(", "(", "identifier", ")", "(", "identifier", ")", ")", "(", "identifier", ")"};
                 int      index  = 0;
                 
                 @Override
@@ -1218,6 +1220,8 @@ public class Parser {
                 parser.print(System.err);
             }
             else {
+                grammar  .print(System.out); System.out.println();
+                parser   .print(System.out); System.out.println();
                 parseTree.print(System.out);
             }
         }
