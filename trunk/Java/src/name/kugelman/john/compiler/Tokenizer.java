@@ -39,8 +39,11 @@ public abstract class Tokenizer {
      * 
      * @return a token from the token source, or <code>null</code> if there
      *         are no tokens left.
+     *         
+     * @throws IOException
+     *     if there's an error reading from the token source 
      */
-    protected abstract Token extractToken();
+    protected abstract Token extractToken() throws IOException;
 
     /**
      * Gets a token from the token source, calling {@link #extractToken()} as
@@ -50,8 +53,11 @@ public abstract class Tokenizer {
      * 
      * @return a token from the token source, or <code>null</code> if there
      *         are no tokens left
+     *         
+     * @throws IOException
+     *     if there's an error reading from the token source 
      */
-    public Token getToken() {
+    public Token getToken() throws IOException {
         if (tokenPosition < extractedTokens.size()) {
             return extractedTokens.get(tokenPosition++);
         }

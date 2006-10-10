@@ -914,12 +914,16 @@ public class Parser {
      * 
      * @return a parse tree, or <code>null</code> if the parser encounters an
      *         error from which it cannot recover.
-     *         
+     *
+     * @throws IOException
+     *     if there's an error reading from the tokenizer
      * @throws UnknownTokenException
      *     if the parser encounters a token that was not declared in the
      *     grammar.
      */
-    public ParseTree parse(Tokenizer tokenizer) throws UnknownTokenException {
+    public ParseTree parse(Tokenizer tokenizer)
+        throws IOException, UnknownTokenException
+    {
         Stack<Integer>       stateStack  = new Stack<Integer>();                // The states reached by the parser.
         Token                token       = tokenizer.getToken();                // The current lookahead token.
         List<ParseTree.Node> parseNodes  = new ArrayList<ParseTree.Node>();     // An array of parse tree nodes.
