@@ -3,7 +3,11 @@ package name.kugelman.john.kang.compiler;
 /**
  * Logs messages generated while compiling a Kang source file.
  */
-public class Log extends name.kugelman.john.compiler.Log { 
+public class Log extends name.kugelman.john.compiler.Log {
+    public Log(Listener... listeners) {
+        super(listeners);
+    }
+    
     /**
      * Codes for error messages that can be generated during compilation.
      * <p>
@@ -38,7 +42,7 @@ public class Log extends name.kugelman.john.compiler.Log {
      * The format string for each message is repeated in the Javadoc comment so
      * callers can easily see the value placeholders.
      */
-    public enum Warning {
+    public enum Warning implements Message {
         ;
         
         private String formatString;
