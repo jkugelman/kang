@@ -124,7 +124,7 @@ public class Token extends name.kugelman.john.compiler.Token {
      * Indicates that the lexeme passed to the constructor was invalid. This is
      * most likely caused by an invalid character.
      */
-    public static class InvalidLexemeException extends Exception {
+    public static class InvalidLexemeException extends RuntimeException {
         private String lexeme;
 
         /**
