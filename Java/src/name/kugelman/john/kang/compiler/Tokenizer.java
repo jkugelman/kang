@@ -12,7 +12,7 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
     private Log log;
     
     /** The source file to read from, or null when end-of-file is reached. */
-    private Reader sourceFile;
+    private PushbackReader sourceFile;
     /** The current character. */
     private char ch;
     /** The tokens that have been extracted but not yet returned. */
@@ -48,7 +48,7 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
         int ch = sourceFile.read();
     
         if (ch >= 0) {
-            this.sourceFile = sourceFile;
+            this.sourceFile = new PushbackReader(sourceFile);
             this.ch         = (char) ch;
 
             this.line       = 0;
@@ -207,7 +207,7 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
     /**
      * Skips white space and comments between tokens.
      */
-    private void skipWhiteSpace() {
+    private void skipWhiteSpace() throws IOException {
         for (;;) {
             while (!endOfInput() && (Character.isWhitespace(ch) || ch == '…')) {
                 if (ch == '…') {
@@ -222,7 +222,12 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
             }
 
             // Exit the loop if this character is not a comment.
-            if (!(ch == '-' && sourceFile.peek() == '-')) {
+            int     nextCh    = sourceFile.read();
+            boolean isComment = (ch == '-' && nextCh == '-');
+            
+            sourceFile.unread(nextCh);
+            
+            if (!isComment) {
                 break;
             }
             
@@ -291,7 +296,12 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
         while (!endOfInput() && Character.isDigit(ch));
         
         // Decimal point followed by at least one digit.
-        if (ch == '.' && sourceFile.peek() != -1 && Character.isDigit((char) sourceFile.peek())) {
+        int     nextCh    = sourceFile.read();
+        boolean isDecimal = (ch == '.' && nextCh != -1 && Character.isDigit((char) nextCh));
+        
+        sourceFile.unread(nextCh);
+        
+        if (isDecimal) {
             lexeme += getChar();
             
             do {

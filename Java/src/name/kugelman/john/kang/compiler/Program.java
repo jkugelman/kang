@@ -26,10 +26,11 @@ public class Program {
         throws FileNotFoundException, Parser.Exception, IOException
     {
         try {
+            Log         log       = new Log();
             InputStream stream    = Program.class.getResourceAsStream("grammar.xml");
             Grammar     grammar   = Grammar.fromXML(stream);
             Parser      parser    = new Parser(grammar);
-            ParseTree   parseTree = parser.parse(new Tokenizer(new FileReader(sourceFile)));
+            ParseTree   parseTree = parser.parse(new Tokenizer(new FileReader(sourceFile), log));
     
             parseTree.print(System.out);
         }

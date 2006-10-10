@@ -28,8 +28,8 @@ public abstract class Log {
     
     private Collection<Listener> listeners;
     
-    public Log() {
-        listeners = new ArrayList<Listener>();
+    public Log(Listener... listeners) {
+        this.listeners = new ArrayList<Listener>(Arrays.asList(listeners));
     }
     
     
