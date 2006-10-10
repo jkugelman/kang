@@ -9,7 +9,7 @@ import name.kugelman.john.util.*;
  * A Kang program. This class parses and creates executable programs from Kang
  * source code files.
  */
-public class Program {
+public class Program implements Log.Listener {
     /**
      * Creates a new Kang program.
      * 
@@ -26,7 +26,7 @@ public class Program {
         throws FileNotFoundException, Parser.Exception, IOException
     {
         try {
-            Log         log       = new Log();
+            Log         log       = new Log(this);
             InputStream stream    = Program.class.getResourceAsStream("grammar.xml");
             Grammar     grammar   = Grammar.fromXML(stream);
             Parser      parser    = new Parser(grammar);
@@ -44,5 +44,10 @@ public class Program {
      * Executes the program.
      */
     public void execute() {
+    }
+
+    
+    public void message(String message) {
+        Debug.logMajor("%s", message);
     }
 }
