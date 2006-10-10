@@ -1,0 +1,67 @@
+<?xml version="1.0"?> 
+
+<grammar language="test">
+  <terminal name="integer"/>
+  <terminal name="+"/>
+  <terminal name="-"/>
+  <terminal name="×"/>
+  <terminal name="÷"/>
+  <terminal name="("/>
+  <terminal name=")"/>
+  <terminal name="end of line"/>
+
+  <terminal name="class"/>
+  <terminal name="if"/>
+  
+  <variable name="statements">
+    <rule>
+      <repeat minimum="0">
+        <variable>statement</variable>
+      </repeat>
+    </rule>
+  </variable>
+  
+  <variable name="statement">
+    <rule>
+      <variable>expression</variable>
+      <terminal>end of line</terminal>
+    </rule>
+    
+    <rule>
+      <error/>
+      <terminal>end of line</terminal>
+    </rule>
+  </variable>
+  
+  <variable name="expression">
+    <orderedByPrecedence>
+      <group associativity="left">
+        <rule>
+          <variable>expression</variable>
+          <choice><terminal>×</terminal>
+                  <terminal>÷</terminal></choice>
+          <variable>expression</variable>
+        </rule>
+      </group>
+        
+      <group associativity="left">
+        <rule>
+          <variable>expression</variable>
+          <choice><terminal>+</terminal>
+                  <terminal>-</terminal></choice>
+          <variable>expression</variable>
+        </rule>
+      </group>
+    </orderedByPrecedence>
+    
+    <rule>
+      <terminal>(</terminal>
+      <variable>expression</variable>
+      <terminal>)</terminal>
+    </rule>
+    
+    <rule>
+      <terminal>integer</terminal>
+    </rule>
+  </variable>
+</grammar>

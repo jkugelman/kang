@@ -3,10 +3,14 @@
 import java.io.*;
 import java.util.*;
 
+import name.kugelman.john.kang.compiler.Log.Error;
+
 /**
  * Extracts tokens from a Kang source file.
  */
 public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
+    private Log log;
+    
     /** The source file to read from, or null when end-of-file is reached. */
     private Reader sourceFile;
     /** The current character. */
@@ -31,12 +35,15 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
     /**
      * Creates a tokenizer that extracts tokens from a source file.
      * 
-     * @param sourceFile  the source file to read tokens from
+     * @param sourceFile  a source file
+     * @param log         the log to write messages to
      * 
      * @throws IOException
      *     if there's an error reading from the source file
      */
-    public Tokenizer(Reader sourceFile) throws IOException {
+    public Tokenizer(Reader sourceFile, Log log) throws IOException {
+        this.log = log;
+        
         // "Prime" the source file by reading the first character.
         int ch = sourceFile.read();
     
@@ -205,7 +212,7 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
             while (!endOfInput() && (Character.isWhitespace(ch) || ch == '…')) {
                 if (ch == '…') {
                     if (justSawEllipsis) {
-                        Program.Log.Write(Error.EllipsisNotAtEndOfLine);
+                        log.write(Error.ELLIPSIS_NOT_AT_END_OF_LINE);
                     }
 
                     justSawEllipsis = true;
@@ -227,7 +234,7 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
         }
 
         if (!endOfInput() && justSawEllipsis) {
-            Program.Log.Write(Error.EllipsisNotAtEndOfLine);
+            log.write(Error.ELLIPSIS_NOT_AT_END_OF_LINE);
             justSawEllipsis = false;
         }
     }
@@ -272,8 +279,7 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
         isFirstToken = false;
     }
 
-    private void readNumber()
-    {
+    private void readNumber() throws IOException {
         Position start  = getPosition();
         Position end;
         String   lexeme = "";
@@ -306,22 +312,21 @@ public class Tokenizer extends name.kugelman.john.compiler.Tokenizer {
             }
             while (Character.isLetterOrDigit(ch) || ch == '.');
         
-            Program.Log.Write(Error.InvalidNumber, lexeme + invalidPart);
+            log.write(Error.INVALID_NUMBER, lexeme + invalidPart);
         }
         
         tokens.add(new Token(lexeme, start, end));
         isFirstToken = false;
     }
     
-    private void readSymbol()
-    {
+    private void readSymbol() throws IOException {
         try {
             // Try to create new token with this character, which will throw an exception if
             // the character is bad.
             tokens.add(new Token(Character.toString(ch), getPosition()));
         }
         catch (Token.InvalidLexemeException exception) {
-            Program.Log.Write(Error.InvalidCharacter, ch);
+            log.write(Error.INVALID_CHARACTER, ch);
         }
 
         getChar();
