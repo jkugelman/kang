@@ -26,7 +26,7 @@ public class Parser {
      * shift a token, reduce by the specified rule, or accept the string and
      * return a syntax tree.
      */
-    private static class Action
+    private static final class Action
     {
         /**
          * The action type.
@@ -107,7 +107,7 @@ public class Parser {
      * parse tables. A parse item is of the form [A → α·β, a], where A → αβ is
      * a rule in the grammar and a is a lookahead terminal.
      */
-    public static class ParseItem {
+    public static final class ParseItem {
         /** The rule A → αβ. */
         public final Rule rule;
         /** The position of the dot. */
@@ -262,7 +262,7 @@ public class Parser {
     /**
      * When constructed, produces the action and goto tables for a grammar.
      */
-    private class Tables {
+    private final class Tables {
         private Grammar grammar;
 
         /** Indexed by variables, indicates if a variable can derive ε. */
