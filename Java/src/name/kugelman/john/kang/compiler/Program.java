@@ -9,7 +9,7 @@ import name.kugelman.john.util.*;
  * A Kang program. This class parses and creates executable programs from Kang
  * source code files.
  */
-public class Program implements Log.Listener {
+public class Program implements Logger {
     /**
      * Creates a new Kang program.
      * 
