@@ -10,52 +10,36 @@ public abstract class Log {
         public String getFormatString();
     }
     
+    private Collection<Logger> loggers;
+    
+    public Log(Logger... loggers) {
+        this.loggers = new ArrayList<Logger>(Arrays.asList(loggers));
+    }
+    
+    
     /**
-     * Interface for classes that want to listen for messages being written to
+     * Adds a logger to the list to be notified when messages are written to
      * the log.
      * 
-     * @see #addListener(Listener)
-     * @see #removeListener(Listener)
+     * @param logger  a logger
      */
-    public interface Listener {
-        /**
-         * Called when a message is written to the log.
-         * 
-         * @param message  the message that was written
-         */
-        public void message(String message);
-    }
-    
-    private Collection<Listener> listeners;
-    
-    public Log(Listener... listeners) {
-        this.listeners = new ArrayList<Listener>(Arrays.asList(listeners));
-    }
-    
-    
-    /**
-     * Adds a listener to the list to be notified when messages are written to
-     * the log.
-     * 
-     * @param listener  a listener
-     */
-    public void addListener(Listener listener) {
-        listeners.add(listener);
+    public void register(Logger logger) {
+        loggers.add(logger);
     }
     
     /**
-     * Removes a listener from the list to be notified when messages are written
+     * Removes a logger from the list to be notified when messages are written
      * to the log.
      * 
-     * @param listener  a listener
+     * @param logger  a logger
      */
-    public void removeListener(Listener listener) {
-        listeners.remove(listener);
+    public void removeListener(Logger logger) {
+        loggers.remove(logger);
     }
     
     
     /**
-     * Writes a message to the log, notifying any listeners that the message has
+     * Writes a message to the log, notifying any loggers that the message has
      * been written.
      * 
      * @param message            a message
@@ -64,8 +48,8 @@ public abstract class Log {
     public void write(Message message, Object... messageParameters) {
         String string = String.format(message.getFormatString(), messageParameters);
         
-        for (Listener listener: listeners) {
-            listener.message(string);
+        for (Logger logger: loggers) {
+            logger.message(string);
         }
     }
 }

@@ -1,11 +1,13 @@
 package name.kugelman.john.kang.compiler;
 
+import name.kugelman.john.compiler.*;
+
 /**
  * Logs messages generated while compiling a Kang source file.
  */
 public class Log extends name.kugelman.john.compiler.Log {
-    public Log(Listener... listeners) {
-        super(listeners);
+    public Log(Logger... loggers) {
+        super(loggers);
     }
     
     /**
