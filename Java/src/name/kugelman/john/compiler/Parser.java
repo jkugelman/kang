@@ -173,90 +173,6 @@ public class Parser {
     }
 
 
-    /** Base class for exceptions thrown by the parser. */
-    public abstract class Exception extends RuntimeException {
-        public Exception(String message) {
-            super(message);
-        }
-        
-        public void printDetails(PrintStream stream) {
-            stream.println(getMessage());
-        }
-    }
-
-    /**
-     * Thrown when a shift/reduce conflict can't be resolved during the creation
-     * of the parser.
-     */
-    public class ShiftReduceException extends Exception {
-        /** The shift rule. */
-        public final Rule shiftRule;
-        /** The reduce rule. */
-        public final Rule reduceRule;
-        /** The parser state where the conflict occurs. */
-        public final State state;
-
-        ShiftReduceException(Rule shiftRule, Rule reduceRule, State state) {
-            super("Unable to resolve shift/reduce conflict.");
-            
-            this.shiftRule  = shiftRule;
-            this.reduceRule = reduceRule;
-            this.state      = state;
-        }
-
-        /** Prints the conflicting rules and the state of the parser. */
-        @Override
-        public void printDetails(PrintStream stream) {
-            stream.println("Unable to resolve shift/reduce conflict.");
-            stream.println();
-            stream.printf ("Shift rule:  %s%n", shiftRule);
-            stream.printf ("Reduce rule: %s%n", reduceRule);
-            stream.println();
-            stream.println("Parser state:");
-
-            for (ParseItem parseItem: state) {
-                stream.printf("    %s%n", parseItem);
-            }
-        }
-    }
-
-    /**
-     * Thrown when a reduce/reduce conflict can't be resolved during the
-     * creation of the parser.
-     */
-    public class ReduceReduceException extends Exception {
-        /** The new rule. */
-        public final Rule newRule;
-        /** The old rule already in the parsing table. */
-        public final Rule oldRule;
-        /** The parser state where the conflict occurs. */
-        public final State state;
-
-        public ReduceReduceException(Rule newRule, Rule oldRule, State state) {
-            super("Unable to resolve reduce/reduce conflict.");
-            
-            this.newRule = newRule;
-            this.oldRule = oldRule;
-            this.state   = state;
-        }
-
-
-        /** Prints the conflicting rules and the state of the parser. */
-        @Override
-        public void printDetails(PrintStream stream) {
-            stream.println("Unable to resolve reduce/reduce conflict.");
-            stream.println();
-            stream.printf ("Rule #1: %s%n", oldRule);
-            stream.printf ("Rule #2: %s%n", newRule);
-            stream.println();
-            stream.println("Parser state:");
-
-            for (ParseItem parseItem: state) {
-                stream.printf("    %s%n", parseItem);
-            }
-        }
-    }
-
     /**
      * When constructed, produces the action and goto tables for a grammar.
      */
@@ -880,29 +796,6 @@ public class Parser {
         this.gotoTable   = tables.gotoTable;
     }
 
-
-    /**
-     * Thrown by the parser when it encounters a token that was not declared in
-     * the grammar.
-     */
-    public class UnknownTokenException extends Exception {
-        private Token token;
-
-        UnknownTokenException(Token token) {
-            super("Unknown token " + token + " encountered during parsing.");
-            
-            this.token = token;
-        }
-
-        /**
-         * Gets the unknown token.
-         * @return the unknown token.
-         */
-        public Token getToken() {
-            return token;
-        }
-    }
-    
     /**
      * Parses the file represented by the specified tokenizer and returns a
      * parse tree.
@@ -1233,7 +1126,7 @@ public class Parser {
         catch (IOException exception) {
             Debug.logError(exception);
         }
-        catch (Parser.Exception exception) {
+        catch (ParserException exception) {
             Debug.logError(exception);
             exception.printDetails(System.err);
         }
