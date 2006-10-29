@@ -189,11 +189,11 @@ public class Parser {
      * of the parser.
      */
     public class ShiftReduceException extends Exception {
-        /// <summary>The shift rule.</summary>
+        /** The shift rule. */
         public final Rule shiftRule;
-        /// <summary>The reduce rule.</summary>
+        /** The reduce rule. */
         public final Rule reduceRule;
-        /// <summary>The parser state where the conflict occurs.</summary>
+        /** The parser state where the conflict occurs. */
         public final State state;
 
         ShiftReduceException(Rule shiftRule, Rule reduceRule, State state) {
