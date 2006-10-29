@@ -26,13 +26,11 @@ public class Parser {
      * shift a token, reduce by the specified rule, or accept the string and
      * return a syntax tree.
      */
-    private static final class Action
-    {
+    private static final class Action {
         /**
          * The action type.
          */
-        public enum Type
-        {
+        public enum Type {
             /** Shift the next token from the source program. */
             SHIFT,
             /** Reduce by the specified rule number. */
@@ -75,7 +73,7 @@ public class Parser {
          * 
          * @return a new reduce action.
          */
-        public static Action Reduce(Rule rule) {
+        public static Action reduce(Rule rule) {
             return new Action(Type.REDUCE, rule);
         }
         
@@ -84,7 +82,7 @@ public class Parser {
          * 
          * @return a new accept action.
          */
-        public static Action Accept() {
+        public static Action accept() {
             return new Action(Type.ACCEPT, null);
         }
 
@@ -650,7 +648,7 @@ public class Parser {
                     }
                     else {
                         if (parseItem.rule.getVariable() == grammar.getStartVariable()) {
-                            actionTable.get(i).put("@end", Action.Accept());
+                            actionTable.get(i).put("@end", Action.accept());
                         }
                         else {
                             addReduceAction(i, parseItem.lookahead, parseItem.rule);
@@ -751,7 +749,7 @@ public class Parser {
                 }
             }
 
-            actionTable.get(state).put(terminal.getTokenClass(), Action.Reduce(rule));
+            actionTable.get(state).put(terminal.getTokenClass(), Action.reduce(rule));
             reasonTable.get(state).put(terminal.getTokenClass(), rule);
         }
 
