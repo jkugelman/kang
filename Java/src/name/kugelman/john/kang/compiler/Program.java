@@ -19,11 +19,11 @@ public class Program implements Logger {
      *     if the input source file is not found. 
      * @throws IOException 
      *     if there's an error reading from the source file.
-     * @throws Parser.Exception
+     * @throws ParserException
      *     
      */
     public Program(File sourceFile)
-        throws FileNotFoundException, Parser.Exception, IOException
+        throws FileNotFoundException, ParserException, IOException
     {
         try {
             Log         log       = new Log(this);
