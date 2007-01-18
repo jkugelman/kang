@@ -19,6 +19,8 @@ import name.kugelman.john.util.*;
  * uncalled-for reductions when an error is encountered. Canonical parsers, on
  * the other hand, usually have much larger parsing tables, but this is not as
  * important a consideration as it was twenty years ago.
+ * 
+ * This is possibly the gayest code I have ever written.
  */
 public class Parser {
     /**
