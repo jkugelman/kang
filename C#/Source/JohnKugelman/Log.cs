@@ -139,26 +139,38 @@ namespace JohnKugelman
     
         private static string buildOutput(StackFrame caller, Level level, string message, string details)
         {
-            StringBuilder outputBuilder = new StringBuilder();
+            StringBuilder builder = new StringBuilder();
             
-            outputBuilder.AppendFormat("{0} {1} ({2})", DateTime.Now, displayedString(level), location(caller));
+            builder.Append(DateTime.Now);
+            builder.Append(' ');
+            builder.Append(displayedString(level));
+            builder.Append(" (");
+            builder.Append(location(caller));
+            builder.Append(')');
             
             if (message != null)
-                outputBuilder.AppendFormat(": {0}", message);
+            {
+                builder.Append(": ");
+                builder.Append(message);
+            }
         
-            outputBuilder.Append('\n');
+            builder.Append('\n');
         
             if (details != null)
             {
-                outputBuilder.Append('\n');
+                builder.Append('\n');
             
                 foreach (string line in details.Split('\n'))
-                    outputBuilder.AppendFormat("    {0}\n", line);
+                {
+                    builder.Append("    ");
+                    builder.Append(line);
+                    builder.Append('\n');
+                }
 
-                outputBuilder.Append('\n');
+                builder.Append('\n');
             }
         
-            return outputBuilder.ToString();
+            return builder.ToString();
         }
 
         private static string location(StackFrame caller)
