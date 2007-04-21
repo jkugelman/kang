@@ -1,4 +1,4 @@
-namespace JohnKugelman
+namespace Kang
 {
     public class Test
     {

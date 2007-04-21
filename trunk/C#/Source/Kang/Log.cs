@@ -5,7 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
-namespace JohnKugelman
+namespace Kang
 {
     /// Global logging class. Displays debugging messages to one or more
     /// <see cref="TextWriter"/>s, usually <see cref="Console.Out"/> and
